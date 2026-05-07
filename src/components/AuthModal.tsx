@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth, type AuthMode } from "@/lib/AuthProvider";
 import { useLang } from "@/lib/LanguageProvider";
 
@@ -87,8 +88,20 @@ function AppleIcon() {
 
 function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode: () => void; close: () => void }) {
   const { t } = useLang();
+  const { login } = useAuth();
+  const router = useRouter();
   const [showPwd, setShowPwd] = useState(false);
   const isSignup = mode === "signup";
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const email = (data.get("email") as string) || "user@example.com";
+    const fullName = (data.get("fullName") as string) || email.split("@")[0];
+    login({ name: fullName, email, tier: "free" });
+    close();
+    router.push("/dashboard");
+  };
 
   const auth = isSignup ? t.auth.signup : t.auth.login;
 
@@ -147,14 +160,7 @@ function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode:
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          // Hook up real submit later.
-          close();
-        }}
-        className="relative mt-6 space-y-2.5"
-      >
+      <form onSubmit={handleSubmit} className="relative mt-6 space-y-2.5">
         {isSignup && (
           <Field icon="user" name="fullName" placeholder={t.auth.fields.fullName} required autoFocus />
         )}

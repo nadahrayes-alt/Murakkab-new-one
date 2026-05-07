@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "@/lib/LanguageProvider";
 import { useTheme, THEMES, type Theme } from "@/lib/ThemeProvider";
@@ -39,8 +41,12 @@ const SECTION_IDS = ["features", "news", "testimonials", "pricing", "articles"] 
 export default function Navbar() {
   const { t, lang, setLang } = useLang();
   const { theme, setTheme } = useTheme();
-  const { open: openAuth } = useAuth();
+  const { open: openAuth, user, isAuthed, logout } = useAuth();
   const { openSearch } = useSearch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement | null>(null);
 
   // Cmd/Ctrl + K opens search
   useEffect(() => {
@@ -99,6 +105,23 @@ export default function Navbar() {
       document.removeEventListener("keydown", onEsc);
     };
   }, [themeOpen]);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && setAccountOpen(false);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [accountOpen]);
+
+  // Close account dropdown when route changes
+  useEffect(() => { setAccountOpen(false); }, [pathname]);
 
   // Lock body scroll when mobile menu open
   useEffect(() => {
@@ -321,24 +344,160 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Login (outlined) */}
-            <button
-              type="button"
-              onClick={() => openAuth("login")}
-              className="hidden md:inline-flex items-center rounded-full border border-[var(--border)] px-3 h-8 text-[12.5px] hover:border-[color:color-mix(in_oklab,var(--accent)_45%,transparent)] transition-colors"
-              style={{ background: "var(--soft-bg)" }}
-            >
-              {t.nav.login}
-            </button>
+            {isAuthed && user ? (
+              /* Avatar dropdown when logged in */
+              <div className="relative" ref={accountRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountOpen((v) => !v)}
+                  className="grid place-items-center w-9 h-9 rounded-full border border-[var(--border)] font-medium text-[13px] uppercase transition-colors"
+                  style={{
+                    background: "color-mix(in oklab, var(--accent) 12%, transparent)",
+                    color: "var(--accent)",
+                  }}
+                  aria-expanded={accountOpen}
+                  aria-label={t.account.myAccount}
+                >
+                  {user.name.charAt(0)}
+                </button>
 
-            {/* Signup (primary) */}
-            <button
-              type="button"
-              onClick={() => openAuth("signup")}
-              className="btn-primary !py-1.5 !px-3 sm:!px-3.5 !text-[12.5px]"
-            >
-              {t.nav.signup}
-            </button>
+                {accountOpen && (
+                  <div
+                    className="absolute end-0 mt-2 w-72 rounded-2xl border border-[var(--border)] backdrop-blur-md p-1.5 z-50"
+                    style={{ background: "var(--nav-bg-mobile)" }}
+                    role="menu"
+                  >
+                    {/* User info */}
+                    <div className="flex items-center gap-3 px-3 py-3 border-b border-[var(--border)] mb-1">
+                      <span
+                        className="grid place-items-center w-10 h-10 rounded-full font-medium text-base uppercase shrink-0"
+                        style={{
+                          background: "color-mix(in oklab, var(--accent) 16%, transparent)",
+                          color: "var(--accent)",
+                        }}
+                      >
+                        {user.name.charAt(0)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium truncate">{user.name}</div>
+                        <div className="text-[11px] text-[var(--muted)] truncate">{user.email}</div>
+                      </div>
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-[0.08em]"
+                        style={{
+                          background: user.tier === "premium"
+                            ? "var(--accent)"
+                            : "var(--surface-2)",
+                          color: user.tier === "premium" ? "var(--accent-contrast)" : "var(--muted)",
+                        }}
+                      >
+                        {user.tier === "premium" ? "Pro" : "Free"}
+                      </span>
+                    </div>
+
+                    {[
+                      { href: "/dashboard", label: t.account.dashboard, icon: (
+                        <>
+                          <rect x="3" y="3" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+                          <rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+                          <rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+                          <rect x="3" y="16" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+                        </>
+                      ) },
+                      { href: "/watchlist", label: t.account.watchlist, icon: (
+                        <path d="M12 3l2.39 5.26 5.61.5-4.27 3.74 1.32 5.5L12 15.27 6.95 18l1.32-5.5L4 8.76l5.61-.5L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                      ) },
+                      { href: "/account", label: t.account.settings, icon: (
+                        <>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+                          <path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3h.1a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v.1a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" stroke="currentColor" strokeWidth="1.4" />
+                        </>
+                      ) },
+                    ].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] transition-colors"
+                        style={{
+                          color: pathname === item.href ? "var(--foreground)" : "var(--muted)",
+                          background: pathname === item.href ? "var(--hover-bg)" : "transparent",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (pathname !== item.href) e.currentTarget.style.background = "var(--soft-bg)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (pathname !== item.href) e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          {item.icon}
+                        </svg>
+                        <span className="flex-1">{item.label}</span>
+                      </Link>
+                    ))}
+
+                    {user.tier === "free" && (
+                      <Link
+                        href="/#pricing"
+                        className="flex items-center gap-2.5 mx-1 my-1 px-2.5 py-2 rounded-xl text-[13px] transition-colors"
+                        style={{
+                          background: "color-mix(in oklab, var(--accent) 10%, transparent)",
+                          color: "var(--accent)",
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path d="M12 3l2.39 5.26 5.61.5-4.27 3.74 1.32 5.5L12 15.27 6.95 18l1.32-5.5L4 8.76l5.61-.5L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="currentColor" />
+                        </svg>
+                        <span className="flex-1 font-medium">{t.account.upgrade}</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
+                          <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </Link>
+                    )}
+
+                    <div className="border-t border-[var(--border)] mt-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setAccountOpen(false);
+                          router.push("/");
+                        }}
+                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[13px] text-start text-[var(--muted)] hover:text-[#e74c3c] transition-colors"
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, #e74c3c 8%, transparent)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span>{t.account.logout}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Login (outlined) */}
+                <button
+                  type="button"
+                  onClick={() => openAuth("login")}
+                  className="hidden md:inline-flex items-center rounded-full border border-[var(--border)] px-3 h-8 text-[12.5px] hover:border-[color:color-mix(in_oklab,var(--accent)_45%,transparent)] transition-colors"
+                  style={{ background: "var(--soft-bg)" }}
+                >
+                  {t.nav.login}
+                </button>
+
+                {/* Signup (primary) */}
+                <button
+                  type="button"
+                  onClick={() => openAuth("signup")}
+                  className="btn-primary !py-1.5 !px-3 sm:!px-3.5 !text-[12.5px]"
+                >
+                  {t.nav.signup}
+                </button>
+              </>
+            )}
 
             {/* Mobile hamburger */}
             <button
@@ -424,29 +583,76 @@ export default function Navbar() {
               })}
             </div>
 
-            <div className="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  openAuth("login");
-                }}
-                className="inline-flex items-center justify-center rounded-full border border-[var(--border)] px-3 h-9 text-[13px]"
-                style={{ background: "var(--soft-bg)" }}
-              >
-                {t.nav.login}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  openAuth("signup");
-                }}
-                className="btn-primary !py-2 justify-center !text-[13px]"
-              >
-                {t.nav.signup}
-              </button>
-            </div>
+            {isAuthed && user ? (
+              <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                <div className="flex items-center gap-3 px-3 py-2 mb-1">
+                  <span
+                    className="grid place-items-center w-9 h-9 rounded-full font-medium text-sm uppercase shrink-0"
+                    style={{
+                      background: "color-mix(in oklab, var(--accent) 16%, transparent)",
+                      color: "var(--accent)",
+                    }}
+                  >
+                    {user.name.charAt(0)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-medium truncate">{user.name}</div>
+                    <div className="text-[11px] text-[var(--muted)] truncate">{user.email}</div>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center px-3 py-2.5 rounded-xl text-sm transition-colors"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {t.account.dashboard}
+                </Link>
+                <Link
+                  href="/watchlist"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center px-3 py-2.5 rounded-xl text-sm transition-colors"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {t.account.watchlist}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setOpen(false);
+                    router.push("/");
+                  }}
+                  className="w-full text-start flex items-center px-3 py-2.5 rounded-xl text-sm transition-colors text-[var(--muted)]"
+                >
+                  {t.account.logout}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openAuth("login");
+                  }}
+                  className="inline-flex items-center justify-center rounded-full border border-[var(--border)] px-3 h-9 text-[13px]"
+                  style={{ background: "var(--soft-bg)" }}
+                >
+                  {t.nav.login}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    openAuth("signup");
+                  }}
+                  className="btn-primary !py-2 justify-center !text-[13px]"
+                >
+                  {t.nav.signup}
+                </button>
+              </div>
+            )}
 
             <div className="md:hidden mt-3 flex items-center justify-center rounded-full border border-[var(--border)] p-0.5 text-[12px]" style={{ background: "var(--soft-bg)" }}>
               <button

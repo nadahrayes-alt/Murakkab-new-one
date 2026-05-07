@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearch } from "@/lib/SearchProvider";
 import { useLang } from "@/lib/LanguageProvider";
 import { useAuth } from "@/lib/AuthProvider";
+import { useWatchlist } from "@/lib/WatchlistProvider";
 
 const FILTER_ICONS: Record<string, React.ReactNode> = {
   warning: (
@@ -289,7 +290,8 @@ function ResultCard({ stock, lang, labels, onNavigate }: {
   labels: { valuation: string; quality: string; shariah: string };
   onNavigate?: () => void;
 }) {
-  const [starred, setStarred] = useState(false);
+  const { isWatched, toggle } = useWatchlist();
+  const starred = isWatched(stock.ticker);
   const isPositive = stock.change >= 0;
 
   const valuationTone = stock.v === "fair" ? "good" : "neutral";
@@ -318,7 +320,7 @@ function ResultCard({ stock, lang, labels, onNavigate }: {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setStarred((v) => !v);
+          toggle(stock.ticker);
         }}
         className="absolute top-3 start-3 grid place-items-center w-7 h-7 rounded-full transition-colors"
         style={{

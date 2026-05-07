@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLang } from "@/lib/LanguageProvider";
+import { useWatchlist } from "@/lib/WatchlistProvider";
 import { Reveal } from "./Parallax";
 
 const PLACEHOLDER_COMPANIES: Record<string, { name: { en: string; ar: string }; sector: { en: string; ar: string }; price: number; change: number }> = {
@@ -140,8 +141,9 @@ function AnalystDonut({ buy, hold, sell }: { buy: number; hold: number; sell: nu
 
 export default function StockDetail({ symbol }: { symbol: string }) {
   const { t, lang } = useLang();
+  const { isWatched, toggle } = useWatchlist();
   const [range, setRange] = useState<TimeRange>("1M");
-  const [watchlisted, setWatchlisted] = useState(false);
+  const watchlisted = isWatched(symbol);
 
   const company = PLACEHOLDER_COMPANIES[symbol] ?? FALLBACK;
   const isPositive = company.change >= 0;
@@ -231,7 +233,7 @@ export default function StockDetail({ symbol }: { symbol: string }) {
 
               <button
                 type="button"
-                onClick={() => setWatchlisted((v) => !v)}
+                onClick={() => toggle(symbol)}
                 className="inline-flex items-center gap-2 rounded-full border px-3.5 h-9 text-[12.5px] transition-colors"
                 style={{
                   background: watchlisted ? "color-mix(in oklab, var(--accent) 12%, transparent)" : "var(--soft-bg)",
