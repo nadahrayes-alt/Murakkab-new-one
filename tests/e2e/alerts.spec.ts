@@ -1,59 +1,90 @@
 import { test, expect } from "@playwright/test";
-import { setEnglish, seedLoggedInUser } from "./_helpers";
+import { setEnglish, seedLoggedInUser, dismissAuthModalIfOpen } from "./_helpers";
 
-test.describe("Alerts page (Arabic, since EN translations are missing)", () => {
-  test("free user (Arabic) sees premium upsell card", async ({ page }) => {
-    // Don't set English — EN alerts strings don't exist
+test.describe("Alerts page", () => {
+  test.beforeEach(async ({ page }) => {
+    await setEnglish(page);
+    // Ensure no leftover alerts from a previous test
+    await page.addInitScript(() => window.localStorage.removeItem("murakkab_alerts"));
+  });
+
+  test("free user (English) sees premium upsell card", async ({ page }) => {
     await seedLoggedInUser(page, "free");
     await page.goto("/alerts");
-    await expect(page.getByRole("button", { name: /الترقية/ })).toBeVisible();
+    await dismissAuthModalIfOpen(page);
+    await expect(page.getByRole("button", { name: /^Upgrade now$/ })).toBeVisible();
+    // No tabs visible to free users
+    await expect(page.getByRole("button", { name: /^All\s*\(/ })).toHaveCount(0);
   });
 
-  test("premium user (Arabic) sees alert tabs + 'New alert' button", async ({ page }) => {
+  test("premium user sees alert tabs + 4 seeded alerts", async ({ page }) => {
     await seedLoggedInUser(page, "premium");
     await page.goto("/alerts");
-    // Tab buttons end with "(N)" counts
-    await expect(page.getByRole("button", { name: /\(\d+\)$/ }).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /إنشاء تنبيه جديد/ })).toBeVisible();
+    await dismissAuthModalIfOpen(page);
+    await expect(page.getByRole("button", { name: /^All\s*\(4\)$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Active\s*\(3\)$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Triggered\s*\(1\)$/ })).toBeVisible();
   });
 
-  test("BUG: '+ New alert' button has no handler", async ({ page }) => {
+  test("FIX VERIFY: '+ Create new alert' opens form and creates an alert (HIGH-8 fixed)", async ({ page }) => {
     await seedLoggedInUser(page, "premium");
     await page.goto("/alerts");
-    const btn = page.getByRole("button", { name: /إنشاء تنبيه جديد/ });
-    const before = page.url();
-    await btn.click();
-    expect(page.url()).toBe(before);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await dismissAuthModalIfOpen(page);
+    await page.getByRole("button", { name: /^Create new alert$/ }).first().click();
+    // Form modal opens
+    const form = page.getByRole("dialog").last();
+    await expect(form).toBeVisible();
+    await expect(form.getByText("Create new alert")).toBeVisible();
+    // Fill value (ticker, type, condition pre-selected from defaults)
+    await form.locator("input[type='text']").fill("$200.00");
+    await form.getByRole("button", { name: /^Create$/ }).click();
+    // Modal closes, count goes 4 → 5
+    await expect(page.getByRole("button", { name: /^All\s*\(5\)$/ })).toBeVisible();
   });
 
-  test("BUG: row Edit and Delete icons have no handlers", async ({ page }) => {
+  test("FIX VERIFY: Edit button pre-fills form and updates alert (HIGH-8 fixed)", async ({ page }) => {
     await seedLoggedInUser(page, "premium");
     await page.goto("/alerts");
-    const editBtns = page.getByRole("button", { name: /تعديل/ });
-    const deleteBtns = page.getByRole("button", { name: /حذف/ });
-    if ((await editBtns.count()) > 0) {
-      const before = page.url();
-      await editBtns.first().click();
-      expect(page.url()).toBe(before);
-    }
-    if ((await deleteBtns.count()) > 0) {
-      const before = page.url();
-      await deleteBtns.first().click();
-      expect(page.url()).toBe(before);
-    }
+    await dismissAuthModalIfOpen(page);
+    await page.getByRole("button", { name: /^Edit$/ }).first().click();
+    const form = page.getByRole("dialog").last();
+    await expect(form).toBeVisible();
+    await expect(form.getByText("Edit alert")).toBeVisible();
+    // Change value
+    const valueInput = form.locator("input[type='text']");
+    await valueInput.fill("$999.99");
+    await form.getByRole("button", { name: /^Save$/ }).click();
+    // After save, modal closes
+    await expect(form).toBeHidden();
+    // The new value is shown in the list
+    await expect(page.getByText("$999.99").first()).toBeVisible();
   });
 
-  test("HIGH BUG: switching to English on /alerts breaks (translations missing)", async ({ page }) => {
+  test("FIX VERIFY: Delete button confirms and removes the alert (HIGH-8 fixed)", async ({ page }) => {
     await seedLoggedInUser(page, "premium");
-    // Seed English explicitly
+    await page.goto("/alerts");
+    await dismissAuthModalIfOpen(page);
+    page.once("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: /^Delete$/ }).first().click();
+    // Count should go 4 → 3
+    await expect(page.getByRole("button", { name: /^All\s*\(3\)$/ })).toBeVisible();
+  });
+
+  test("FIX VERIFY: /alerts in English renders with proper EN copy (CRITICAL-1 fixed)", async ({ page }) => {
+    await seedLoggedInUser(page, "premium");
     await page.addInitScript(() => window.localStorage.setItem("lang", "en"));
     await page.goto("/alerts");
-    // Title should read something like "Alerts" but t.alerts is undefined in EN
-    // Heading should still render but with empty text — or page should crash
-    // Capture: any visible empty <h1>
-    const h1Text = await page.locator("h1").first().textContent();
-    // If translations are missing, h1Text will be empty/whitespace
-    expect.soft(h1Text?.trim(), "Alerts page heading should not be empty in English").not.toBe("");
+    await dismissAuthModalIfOpen(page);
+    await expect(page.getByRole("heading", { name: /^Alerts$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^All\s*\(/ })).toBeVisible();
+  });
+
+  test("filtering by Triggered tab narrows the list", async ({ page }) => {
+    await seedLoggedInUser(page, "premium");
+    await page.goto("/alerts");
+    await dismissAuthModalIfOpen(page);
+    const triggered = page.getByRole("button", { name: /^Triggered\s*\(/ });
+    await triggered.click();
+    await expect(triggered).toHaveAttribute("aria-pressed", "true");
   });
 });

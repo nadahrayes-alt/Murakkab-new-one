@@ -92,15 +92,15 @@ function StockSidebarCard() {
           <MiniSparkline />
         </div>
 
-        <button
-          type="button"
+        <Link
+          href="/stock/ARMD"
           className="btn-primary w-full justify-center !py-2 mt-4 !text-[12.5px]"
         >
           {t.article.fullAnalysis}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
             <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </Link>
       </div>
     </div>
   );

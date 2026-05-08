@@ -29,7 +29,7 @@ export default function PremiumGate({
   body?: string;
   ctaLabel?: string;
 }) {
-  const { isPremium, isAuthed, open: openAuth, upgrade } = useAuth();
+  const { isPremium, isAuthed, open: openAuth } = useAuth();
   const { t } = useLang();
   const router = useRouter();
 
@@ -39,8 +39,7 @@ export default function PremiumGate({
     if (!isAuthed) {
       openAuth("signup", "premium");
     } else {
-      upgrade();
-      router.push("/dashboard");
+      router.push("/checkout?billing=annual");
     }
   };
 
@@ -140,7 +139,7 @@ export default function PremiumGate({
  * Hides for premium users.
  */
 export function FreeUserBanner() {
-  const { isAuthed, isPremium, upgrade } = useAuth();
+  const { isAuthed, isPremium } = useAuth();
   const { t } = useLang();
   const router = useRouter();
 
@@ -172,10 +171,7 @@ export function FreeUserBanner() {
       </div>
       <button
         type="button"
-        onClick={() => {
-          upgrade();
-          router.push("/dashboard");
-        }}
+        onClick={() => router.push("/checkout?billing=annual")}
         className="btn-primary !py-1.5 !px-3.5 !text-[12.5px] shrink-0"
       >
         {t.gate.banner.cta}

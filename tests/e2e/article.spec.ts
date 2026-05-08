@@ -35,14 +35,24 @@ test.describe("Article detail", () => {
     expect(cb).toContain("/article/clip-test");
   });
 
-  test("Share to X opens twitter intent in new tab", async ({ page, context }) => {
+  test("Share to X opens twitter intent in new tab", async ({ page }) => {
     await page.goto("/article/share-test");
-    const popupPromise = context.waitForEvent("page");
+    // Capture the URL via the window.open call rather than the popup's actual URL,
+    // because aborted navigation never settles popup.url().
+    let openedUrl: string | null = null;
+    await page.exposeFunction("__captureOpen", (u: string) => {
+      openedUrl = u;
+    });
+    await page.evaluate(() => {
+      const orig = window.open;
+      window.open = (url?: string | URL, ...rest: unknown[]) => {
+        // @ts-expect-error custom hook
+        window.__captureOpen(typeof url === "string" ? url : url?.toString());
+        return orig.call(window, "about:blank", ...rest);
+      };
+    });
     await page.getByRole("button", { name: /^Share on X$/ }).first().click();
-    const popup = await popupPromise;
-    await popup.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {});
-    expect(popup.url()).toMatch(/twitter\.com\/intent\/tweet/);
-    await popup.close();
+    await expect.poll(() => openedUrl, { timeout: 5_000 }).toMatch(/twitter\.com\/intent\/tweet/);
   });
 
   test("Newsletter submit shows 'Subscribed' state and clears input", async ({ page }) => {
@@ -58,12 +68,10 @@ test.describe("Article detail", () => {
     await expect(page.getByRole("button", { name: /^Subscribed$/ })).toBeVisible();
   });
 
-  test("BUG: Sidebar 'View full analysis' button has no handler", async ({ page }) => {
+  test("FIX VERIFY: Sidebar 'View full analysis' navigates to /stock/ARMD (HIGH-8 fixed)", async ({ page }) => {
     await page.goto("/article/sidebar-test");
-    const btn = page.getByRole("button", { name: /^View full analysis$/ });
-    await expect(btn).toBeVisible();
-    const before = page.url();
-    await btn.click();
-    expect(page.url()).toBe(before);
+    const link = page.getByRole("link", { name: /^View full analysis$/ });
+    await expect(link).toBeVisible();
+    expect(await link.getAttribute("href")).toBe("/stock/ARMD");
   });
 });

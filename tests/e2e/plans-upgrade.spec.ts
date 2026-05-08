@@ -16,27 +16,30 @@ test.describe("Pricing / Plans / Upgrade flow", () => {
     await expect(page.getByText(/\$199\.00/)).toBeVisible();
   });
 
-  test("Anonymous → 'Subscribe now' opens signup with intent=premium → user signs up → tier=premium on dashboard", async ({ page }) => {
+  test("FIX VERIFY: Anonymous → 'Subscribe now' → signup → /checkout (CRITICAL-3 fixed)", async ({ page }) => {
     await clearAuth(page);
     await page.goto("/#pricing");
     await page.getByRole("button", { name: /^Subscribe now$/ }).click();
     await expect(page.getByPlaceholder("Full name")).toBeVisible();
     await page.getByPlaceholder("Full name").fill("Premium Buyer");
     await page.getByPlaceholder("Email address").fill("premium@example.com");
-    await page.getByPlaceholder("Password").fill("anything");
+    await page.getByPlaceholder("Password").fill("longenoughpassword");
     await page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    // After signup with intent=premium, user should land on /checkout, not /dashboard
+    await expect(page).toHaveURL(/\/checkout/);
+    // Tier is still free until they actually complete checkout
     const u = await page.evaluate(() => JSON.parse(window.localStorage.getItem("murakkab_user") || "{}"));
-    expect(u.tier).toBe("premium");
+    expect(u.tier).toBe("free");
   });
 
-  test("Free user → 'Upgrade now' button silently flips tier", async ({ page }) => {
+  test("FIX VERIFY: Free user → 'Upgrade now' → /checkout (CRITICAL-3 fixed)", async ({ page }) => {
     await seedLoggedInUser(page, "free", { name: "Free", email: "free@example.com" });
     await page.goto("/#pricing");
     await page.getByRole("button", { name: /^Upgrade now$/ }).first().click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/checkout/);
+    // Tier remains free until they actually complete checkout
     const u = await page.evaluate(() => JSON.parse(window.localStorage.getItem("murakkab_user") || "{}"));
-    expect(u.tier).toBe("premium");
+    expect(u.tier).toBe("free");
   });
 
   test("Premium user sees 'Current plan' disabled CTA on featured plan", async ({ page }) => {
@@ -47,18 +50,29 @@ test.describe("Pricing / Plans / Upgrade flow", () => {
     await expect(current).toBeDisabled();
   });
 
-  test("LAUNCH BLOCKER: There is NO payment step — premium granted instantly without a card", async ({ page }) => {
-    await clearAuth(page);
-    await page.goto("/#pricing");
-    await page.getByRole("button", { name: /^Subscribe now$/ }).click();
-    await page.getByPlaceholder("Full name").fill("X");
-    await page.getByPlaceholder("Email address").fill("x@y.z");
-    await page.getByPlaceholder("Password").fill("a");
-    await page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
-    // No /checkout, no Stripe iframe, no card fields anywhere
-    expect(page.url()).not.toMatch(/checkout|stripe|paddle|payment/i);
+  test("FIX VERIFY: /checkout simulation flow upgrades tier only after 'Pay' (CRITICAL-3 fixed)", async ({ page }) => {
+    await seedLoggedInUser(page, "free", { name: "Free Buyer", email: "buyer@example.com" });
+    await page.goto("/checkout?billing=annual");
+    // Check pricing summary shows annual price (multiple matches — pick the first)
+    await expect(page.getByText("$199.00").first()).toBeVisible();
+    // Submit empty → all 4 errors
+    await page.getByRole("button", { name: /^Confirm and pay/ }).click();
+    await expect(page.getByText("Please enter the cardholder name")).toBeVisible();
+    await expect(page.getByText("Card number is invalid")).toBeVisible();
+    // Use the test card shortcut
+    await page.getByRole("button", { name: /^Use test card$/ }).click();
+    await page.getByRole("button", { name: /^Confirm and pay/ }).click();
+    // Processing → success → redirect
+    await expect(page).toHaveURL(/\/dashboard$/, { timeout: 10_000 });
     const u = await page.evaluate(() => JSON.parse(window.localStorage.getItem("murakkab_user") || "{}"));
     expect(u.tier).toBe("premium");
+  });
+
+  test("FIX VERIFY: Anonymous user hitting /checkout directly is bounced to login", async ({ page }) => {
+    await clearAuth(page);
+    await page.goto("/checkout");
+    // Auth modal should open
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByPlaceholder("Email address")).toBeVisible();
   });
 });

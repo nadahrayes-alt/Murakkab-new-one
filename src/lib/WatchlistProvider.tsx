@@ -17,12 +17,24 @@ const STORAGE_KEY = "murakkab_watchlist";
 export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const [watchlist, setWatchlist] = useState<string[]>([]);
 
+  // Hydrate watchlist from localStorage after mount (avoids SSR/client mismatch).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) setWatchlist(JSON.parse(raw) as string[]);
     } catch {}
+    // Also listen to logout-triggered clear (or other tabs writing to the same key)
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      try {
+        setWatchlist(e.newValue ? (JSON.parse(e.newValue) as string[]) : []);
+      } catch {
+        setWatchlist([]);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const persist = useCallback((next: string[]) => {

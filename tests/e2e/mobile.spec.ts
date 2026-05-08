@@ -19,9 +19,12 @@ test.describe("Mobile (iPhone 13 viewport)", () => {
     await expect(page.getByRole("button", { name: /^Create account$/ }).last()).toBeVisible();
   });
 
-  test("Search icon button opens SearchModal on mobile", async ({ page }) => {
+  test("Search trigger inside hamburger menu opens SearchModal", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Open search/i }).first().click();
+    // On <640px, the search icon in the navbar is hidden. Search lives inside the mobile drawer.
+    await page.getByRole("button", { name: /Toggle menu/ }).click();
+    // Click the search-styled button at the top of the drawer (placeholder text is the search hint)
+    await page.locator(".lg\\:hidden button", { hasText: /Search/ }).first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByPlaceholder("Search stocks by name or symbol...")).toBeVisible();
   });

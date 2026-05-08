@@ -21,18 +21,21 @@ const THEME_SWATCH: Record<Theme, string> = {
   sunset: "#0a1f10",
 };
 
-function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) {
+function Toggle({ value, onChange, label, disabled }: { value: boolean; onChange: (v: boolean) => void; label?: string; disabled?: boolean }) {
   return (
     <button
       type="button"
-      onClick={() => onChange(!value)}
+      onClick={() => !disabled && onChange(!value)}
       role="switch"
       aria-checked={value}
       aria-label={label}
+      disabled={disabled}
       className="relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors"
       style={{
         background: value ? "var(--accent)" : "var(--surface-2)",
         border: "1px solid var(--border)",
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       <span
@@ -56,6 +59,7 @@ function Field({
   placeholder,
   name,
   trailing,
+  disabled,
 }: {
   label: string;
   type?: string;
@@ -65,13 +69,14 @@ function Field({
   placeholder?: string;
   name?: string;
   trailing?: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
       <span className="block text-[12px] text-[var(--muted)] mb-1.5">{label}</span>
       <div
         className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-3.5 h-11 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_50%,transparent)]"
-        style={{ background: "var(--surface-2)" }}
+        style={{ background: "var(--surface-2)", opacity: disabled ? 0.6 : 1 }}
       >
         <input
           type={type}
@@ -80,6 +85,7 @@ function Field({
           defaultValue={defaultValue}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           placeholder={placeholder}
+          disabled={disabled}
           className="flex-1 bg-transparent outline-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
         />
         {trailing}
@@ -267,7 +273,7 @@ function SaveButton({
 export default function AccountView() {
   const { t, lang, setLang } = useLang();
   const { theme, setTheme } = useTheme();
-  const { user, isAuthed, logout, open: openAuth, downgrade, updateUser } = useAuth();
+  const { user, isAuthed, logout, open: openAuth, downgrade, updateUser, hydrated } = useAuth();
   const { clear: clearWatchlist } = useWatchlist();
   const router = useRouter();
 
@@ -276,13 +282,12 @@ export default function AccountView() {
   const [profileName, setProfileName] = useState(user?.name ?? "");
   const [profileEmail, setProfileEmail] = useState(user?.email ?? "");
   const [profileSaved, setProfileSaved] = useState(false);
-  const [pwdSaved, setPwdSaved] = useState(false);
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthed) openAuth("login");
-  }, [isAuthed, openAuth]);
+    if (hydrated && !isAuthed) openAuth("login");
+  }, [hydrated, isAuthed, openAuth]);
 
   // Sync controlled state when user object changes (e.g., after upgrade)
   useEffect(() => {
@@ -300,13 +305,6 @@ export default function AccountView() {
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
-  const handlePasswordSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPwdSaved(true);
-    setToast(t.settings.toast.savedPassword);
-    setTimeout(() => setPwdSaved(false), 2000);
-  };
-
   const handleManageSubscription = () => {
     setToast(t.settings.toast.manageSub);
     setInvoicesOpen(true);
@@ -320,7 +318,7 @@ export default function AccountView() {
     }
   };
 
-  if (!isAuthed || !user) {
+  if (hydrated && (!isAuthed || !user)) {
     return (
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-32 sm:py-40 text-center">
         <h1 className="font-display text-3xl sm:text-4xl tracking-tight">{t.settings.title}</h1>
@@ -332,6 +330,10 @@ export default function AccountView() {
         </button>
       </div>
     );
+  }
+
+  if (!hydrated || !user) {
+    return <div className="min-h-[60vh]" />;
   }
 
   const sections = [
@@ -641,39 +643,40 @@ export default function AccountView() {
             desc={t.settings.sections.security.desc}
           >
             <div className="divide-y divide-[var(--border)]">
-              {/* Change password */}
-              <form onSubmit={handlePasswordSave} className="p-5 sm:p-6 space-y-4">
+              {/* Change password — disabled until real auth backend exists */}
+              <div className="p-5 sm:p-6 space-y-4">
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <Field label={t.settings.fields.currentPassword} type="password" />
-                  <Field label={t.settings.fields.newPassword} type="password" />
+                  <Field label={t.settings.fields.currentPassword} type="password" disabled />
+                  <Field label={t.settings.fields.newPassword} type="password" disabled />
                 </div>
-                <div className="flex justify-end">
-                  <SaveButton
-                    saved={pwdSaved}
-                    label={t.settings.actions.changePassword}
-                    savedLabel={t.settings.actions.saved}
-                  />
+                <div className="flex items-center justify-between">
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.14em]"
+                    style={{ background: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" }}
+                  >
+                    {t.auth.comingSoon}
+                  </span>
+                  <button type="button" disabled className="btn-primary opacity-60 cursor-not-allowed">
+                    {t.settings.actions.changePassword}
+                  </button>
                 </div>
-              </form>
+              </div>
 
-              {/* 2FA */}
+              {/* 2FA — disabled until real setup flow exists */}
               <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] font-medium">{t.settings.security.twoFa}</span>
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-[0.08em]"
-                      style={{
-                        background: twoFa ? "color-mix(in oklab, var(--accent) 16%, transparent)" : "var(--surface-2)",
-                        color: twoFa ? "var(--accent)" : "var(--muted)",
-                      }}
+                      className="text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-[0.14em]"
+                      style={{ background: "color-mix(in oklab, var(--accent) 16%, transparent)", color: "var(--accent)" }}
                     >
-                      {twoFa ? t.settings.security.twoFaActive : t.settings.security.twoFaInactive}
+                      {t.auth.comingSoon}
                     </span>
                   </div>
                   <div className="text-[12px] text-[var(--muted)] mt-0.5">{t.settings.security.twoFaDesc}</div>
                 </div>
-                <Toggle value={twoFa} onChange={setTwoFa} label={t.settings.security.twoFa} />
+                <Toggle value={twoFa} onChange={setTwoFa} label={t.settings.security.twoFa} disabled />
               </div>
 
               {/* Sessions */}

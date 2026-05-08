@@ -738,6 +738,13 @@ export const translations = {
       or: "أو",
       comingSoon: "قريباً",
       close: "إغلاق",
+      validation: {
+        nameRequired: "أدخل اسمك الكامل",
+        emailRequired: "البريد الإلكتروني مطلوب",
+        emailInvalid: "أدخل بريدًا إلكترونيًا صحيحًا",
+        passwordRequired: "كلمة المرور مطلوبة",
+        passwordShort: "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
+      },
       fields: {
         fullName: "الاسم الكامل",
         email: "البريد الإلكتروني",
@@ -1088,6 +1095,49 @@ export const translations = {
       freeTier: "Free plan",
       premiumTier: "Premium plan",
       tierLabel: "Plan",
+    },
+    alerts: {
+      title: "Alerts",
+      subtitle: "Manage price, earnings and rating-change alerts on your stocks.",
+      newAlert: "Create new alert",
+      empty: "No alerts yet",
+      emptyDesc: "Add alerts on stocks you follow to get instant notifications when something changes.",
+      tabs: {
+        all: "All",
+        active: "Active",
+        triggered: "Triggered",
+      },
+      types: {
+        price: "Price alert",
+        earnings: "Earnings release",
+        score: "Quality score change",
+        shariah: "Shariah compliance change",
+      },
+      conditions: {
+        priceAbove: "Price rises above",
+        priceBelow: "Price falls to",
+        scoreUp: "Quality rises above",
+        scoreDown: "Quality falls below",
+      },
+      status: {
+        active: "Active",
+        triggered: "Triggered",
+        paused: "Paused",
+      },
+      actions: {
+        edit: "Edit",
+        delete: "Delete",
+        pause: "Pause",
+        resume: "Resume",
+      },
+      mock: [
+        { ticker: "ARMD", type: "price", condition: "priceAbove", value: "$150.00", status: "active" },
+        { ticker: "HELX", type: "earnings", condition: null, value: "Jun 12, 2026", status: "active" },
+        { ticker: "NEXV", type: "price", condition: "priceBelow", value: "$80.00", status: "active" },
+        { ticker: "LUMN", type: "score", condition: "scoreUp", value: "85", status: "triggered" },
+      ],
+      triggeredAt: "Triggered",
+      hours: "h ago",
     },
     dashboard: {
       title: "Dashboard",
@@ -1486,6 +1536,13 @@ export const translations = {
       or: "or",
       comingSoon: "coming soon",
       close: "Close",
+      validation: {
+        nameRequired: "Please enter your full name",
+        emailRequired: "Email is required",
+        emailInvalid: "Please enter a valid email address",
+        passwordRequired: "Password is required",
+        passwordShort: "Password must be at least 8 characters",
+      },
       fields: {
         fullName: "Full name",
         email: "Email address",

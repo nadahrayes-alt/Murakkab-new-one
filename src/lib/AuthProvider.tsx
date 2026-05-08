@@ -22,6 +22,9 @@ type Ctx = {
   user: User | null;
   isAuthed: boolean;
   isPremium: boolean;
+  // True once we've read localStorage at least once on the client.
+  // Use this to avoid running auth-dependent effects (like modal-popup) before hydration.
+  hydrated: boolean;
   login: (user: User) => void;
   logout: () => void;
   upgrade: () => void;
@@ -36,14 +39,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<AuthMode | null>(null);
   const [intent, setIntent] = useState<AuthIntent>(null);
   const [user, setUserState] = useState<User | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Load user from localStorage on mount
+  // Load user from localStorage on mount — kept in an effect so SSR and first client render
+  // agree (no hydration mismatch). The `hydrated` flag below lets consumers wait until
+  // this has run before reacting to `isAuthed`.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) setUserState(JSON.parse(raw) as User);
     } catch {}
+    setHydrated(true);
   }, []);
 
   const open = useCallback((m: AuthMode, nextIntent: AuthIntent = null) => {
@@ -64,16 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback((u: User) => {
-    // If signup happened from a premium CTA, auto-upgrade after login.
-    const finalUser: User = intent === "premium" ? { ...u, tier: "premium" } : u;
-    setUserState(finalUser);
-    persist(finalUser);
-    setIntent(null);
-  }, [intent, persist]);
+    // Always start the user as free. Premium intent is now handled by the AuthModal,
+    // which redirects to /checkout instead of silently flipping the tier.
+    setUserState(u);
+    persist(u);
+  }, [persist]);
 
   const logout = useCallback(() => {
     setUserState(null);
     persist(null);
+    // Clear per-user data scoped only to that session.
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("murakkab_watchlist");
+        // The WatchlistProvider's in-memory state is reset by a "storage" event listener
+        // triggered below, since storage events don't fire in the same window.
+        window.dispatchEvent(new StorageEvent("storage", { key: "murakkab_watchlist", newValue: null }));
+      } catch {}
+    }
   }, [persist]);
 
   const upgrade = useCallback(() => {
@@ -112,13 +127,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isAuthed: !!user,
       isPremium: user?.tier === "premium",
+      hydrated,
       login,
       logout,
       upgrade,
       downgrade,
       updateUser,
     }),
-    [mode, intent, open, close, user, login, logout, upgrade, downgrade, updateUser]
+    [mode, intent, open, close, user, hydrated, login, logout, upgrade, downgrade, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

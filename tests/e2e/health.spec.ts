@@ -1,7 +1,20 @@
 import { test, expect } from "@playwright/test";
 import { collectConsoleErrors, setEnglish } from "./_helpers";
 
-const ROUTES = ["/", "/dashboard", "/account", "/watchlist", "/alerts", "/article/test-slug", "/stock/AAPL"];
+const ROUTES = [
+  "/",
+  "/dashboard",
+  "/account",
+  "/watchlist",
+  "/alerts",
+  "/article/test-slug",
+  "/stock/AAPL",
+  "/terms",
+  "/privacy",
+  "/forgot-password",
+  "/checkout",
+  "/earnings",
+];
 
 test.describe("Health & routing", () => {
   test("homepage loads with brand and main sections", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { setEnglish, seedLoggedInUser, openSignupModal, openLoginModal, submitSignup } from "./_helpers";
+import { setEnglish, seedLoggedInUser, openSignupModal, openLoginModal, submitSignup, dismissAuthModalIfOpen } from "./_helpers";
 
 test.describe("Auth modal — Signup", () => {
   test.beforeEach(async ({ page }) => {
@@ -15,51 +15,58 @@ test.describe("Auth modal — Signup", () => {
     await expect(page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ })).toBeVisible();
   });
 
-  test("HTML5 required attribute blocks empty submission", async ({ page }) => {
+  test("Empty submission shows inline errors and does not navigate", async ({ page }) => {
     await page.goto("/");
     await openSignupModal(page);
     await page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ }).click();
-    // Modal stays open — browser native validation popup blocks
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText("Please enter your full name")).toBeVisible();
+    await expect(page.getByText("Email is required")).toBeVisible();
+    await expect(page.getByText("Password is required")).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
   });
 
-  test("submitting any data redirects to /dashboard and persists user", async ({ page }) => {
+  test("Valid signup redirects to /dashboard and persists free user", async ({ page }) => {
     await page.goto("/");
     await openSignupModal(page);
-    await submitSignup(page, "Ada Lovelace", "ada@example.com", "anything");
+    await submitSignup(page, "Ada Lovelace", "ada@example.com", "longenoughpassword");
     await expect(page).toHaveURL(/\/dashboard$/);
     const u = await page.evaluate(() => JSON.parse(window.localStorage.getItem("murakkab_user") || "{}"));
     expect(u).toMatchObject({ name: "Ada Lovelace", email: "ada@example.com", tier: "free" });
   });
 
-  test("BUG: invalid email format gets through (only browser-native checks)", async ({ page }) => {
+  test("FIX VERIFY: invalid email format shows inline error (HIGH-4 fixed)", async ({ page }) => {
     await page.goto("/");
     await openSignupModal(page);
     await page.getByPlaceholder("Full name").fill("X");
     await page.getByPlaceholder("Email address").fill("not-an-email");
-    await page.getByPlaceholder("Password").fill("a");
+    await page.getByPlaceholder("Password").fill("longenough");
     await page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ }).click();
-    // Browser's email type validation should block
+    // Modal stays open, app-level error shown
     await expect(page.getByRole("dialog")).toBeVisible();
-    // BUT no app-level validation message
-    expect.soft(await page.getByText(/Invalid email|valid email/i).count(), "no app-level email validation").toBe(0);
+    await expect(page.getByText("Please enter a valid email address")).toBeVisible();
   });
 
-  test("BUG: trivially short password is accepted (no policy)", async ({ page }) => {
+  test("FIX VERIFY: short password rejected with inline error (HIGH-4 fixed)", async ({ page }) => {
     await page.goto("/");
     await openSignupModal(page);
-    await submitSignup(page, "Weak", "weak@example.com", "a");
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.getByPlaceholder("Full name").fill("Weak");
+    await page.getByPlaceholder("Email address").fill("weak@example.com");
+    await page.getByPlaceholder("Password").fill("a");
+    await page.getByRole("dialog").getByRole("button", { name: /^Create new account$/ }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText("Password must be at least 8 characters")).toBeVisible();
+    // Did NOT redirect to dashboard
+    await expect(page).toHaveURL(/\/$/);
   });
 
-  test("BUG: Terms and Privacy links are href='#'", async ({ page }) => {
+  test("FIX VERIFY: Terms and Privacy links resolve to real routes (HIGH-10 fixed)", async ({ page }) => {
     await page.goto("/");
     await openSignupModal(page);
     const terms = page.getByRole("link", { name: /Terms of Service/i });
     const privacy = page.getByRole("link", { name: /Privacy Policy/i });
-    expect.soft(await terms.getAttribute("href"), "Terms link href").not.toBe("#");
-    expect.soft(await privacy.getAttribute("href"), "Privacy link href").not.toBe("#");
+    expect(await terms.getAttribute("href")).toBe("/terms");
+    expect(await privacy.getAttribute("href")).toBe("/privacy");
   });
 });
 
@@ -68,24 +75,21 @@ test.describe("Auth modal — Login", () => {
     await setEnglish(page);
   });
 
-  test("login form has Remember me + Forgot password (cosmetic)", async ({ page }) => {
+  test("FIX VERIFY: Forgot password link points to /forgot-password (HIGH-10 fixed)", async ({ page }) => {
     await page.goto("/");
     await openLoginModal(page);
     await expect(page.getByText(/Remember me/)).toBeVisible();
     const forgot = page.getByRole("link", { name: /Forgot password/ });
     await expect(forgot).toBeVisible();
-    expect.soft(await forgot.getAttribute("href"), "Forgot password link href").not.toBe("#");
+    expect(await forgot.getAttribute("href")).toBe("/forgot-password");
   });
 
-  test("BUG: 'Log in with Google' button has no handler", async ({ page }) => {
+  test("FIX VERIFY: 'Log in with Google' is disabled with 'coming soon' (HIGH-7 fixed)", async ({ page }) => {
     await page.goto("/");
     await openLoginModal(page);
     const google = page.getByRole("button", { name: /Log in with Google/ });
-    await expect(google).toBeVisible();
-    await google.click();
-    // Modal still open, URL unchanged
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(google).toBeDisabled();
+    await expect(google).toContainText(/coming soon/i);
   });
 
   test("'Log in with Apple' is correctly disabled with coming soon badge", async ({ page }) => {
@@ -129,9 +133,11 @@ test.describe("Logout", () => {
     await setEnglish(page);
     await seedLoggedInUser(page, "free", { name: "Logout Test", email: "logout@example.com" });
     await page.goto("/dashboard");
+    await dismissAuthModalIfOpen(page);
     // Click avatar (button with aria-label "My account")
     await page.getByRole("button", { name: /^My account$/ }).click();
-    await page.getByRole("button", { name: /^Log out$/ }).click();
+    // Inside the dropdown menu specifically — multiple "Log out" buttons may exist
+    await page.getByRole("menu").getByRole("button", { name: /^Log out$/ }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("button", { name: /^Log in$/ }).first()).toBeVisible();
     const stored = await page.evaluate(() => window.localStorage.getItem("murakkab_user"));
@@ -142,6 +148,7 @@ test.describe("Logout", () => {
     await setEnglish(page);
     await seedLoggedInUser(page, "free");
     await page.goto("/account");
+    await dismissAuthModalIfOpen(page);
     await page.getByRole("button", { name: /Log out of all devices/ }).click();
     await expect(page).toHaveURL(/\/$/);
     const stored = await page.evaluate(() => window.localStorage.getItem("murakkab_user"));

@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useLang } from "@/lib/LanguageProvider";
+import { useAlerts, type AlertRecord, type AlertType } from "@/lib/AlertsProvider";
 import { getStock } from "@/lib/stockData";
 import PremiumGate from "./PremiumGate";
 import { Reveal } from "./Parallax";
-
-type AlertStatus = "active" | "triggered" | "paused";
-type AlertType = "price" | "earnings" | "score" | "shariah";
+import AlertFormModal from "./AlertFormModal";
 
 const TYPE_ICONS: Record<AlertType, React.ReactNode> = {
   price: (
@@ -36,12 +35,19 @@ const TYPE_ICONS: Record<AlertType, React.ReactNode> = {
 
 export default function AlertsView() {
   const { t, lang } = useLang();
-  const { isAuthed, isPremium, open: openAuth } = useAuth();
+  const { isAuthed, isPremium, open: openAuth, hydrated } = useAuth();
+  const { alerts, add, update, remove } = useAlerts();
   const [tab, setTab] = useState<"all" | "active" | "triggered">("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<AlertRecord | null>(null);
 
   useEffect(() => {
-    if (!isAuthed) openAuth("login");
-  }, [isAuthed, openAuth]);
+    if (hydrated && !isAuthed) openAuth("login");
+  }, [hydrated, isAuthed, openAuth]);
+
+  if (!hydrated) {
+    return <div className="min-h-[60vh]" />;
+  }
 
   // Anonymous → prompt login
   if (!isAuthed) {
@@ -89,17 +95,38 @@ export default function AlertsView() {
     );
   }
 
-  // Premium experience
-  const allAlerts = t.alerts.mock as Array<{
-    ticker: string;
-    type: AlertType;
-    condition: string | null;
-    value: string;
-    status: AlertStatus;
-  }>;
-  const filtered = tab === "all" ? allAlerts : allAlerts.filter((a) => a.status === tab);
-  const activeCount = allAlerts.filter((a) => a.status === "active").length;
-  const triggeredCount = allAlerts.filter((a) => a.status === "triggered").length;
+  // Premium experience — alerts now come from AlertsProvider, not from translations.
+  const filtered = tab === "all" ? alerts : alerts.filter((a) => a.status === tab);
+  const activeCount = alerts.filter((a) => a.status === "active").length;
+  const triggeredCount = alerts.filter((a) => a.status === "triggered").length;
+
+  const openCreate = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (a: AlertRecord) => {
+    setEditing(a);
+    setFormOpen(true);
+  };
+  const handleFormSubmit = (data: { ticker: string; type: AlertType; condition: AlertRecord["condition"]; value: string }) => {
+    if (editing) {
+      update(editing.id, data);
+    } else {
+      add(data);
+    }
+    setFormOpen(false);
+    setEditing(null);
+  };
+  const handleDelete = (a: AlertRecord) => {
+    const stock = getStock(a.ticker);
+    const name = stock?.name[lang] ?? a.ticker;
+    const msg = lang === "ar"
+      ? `هل تريد حذف التنبيه على ${name}?`
+      : `Delete the alert on ${name}?`;
+    if (typeof window !== "undefined" && window.confirm(msg)) {
+      remove(a.id);
+    }
+  };
 
   return (
     <div className="relative">
@@ -128,7 +155,7 @@ export default function AlertsView() {
                 </h1>
                 <p className="mt-2 text-sm text-[var(--muted)]">{t.alerts.subtitle}</p>
               </div>
-              <button type="button" className="btn-primary !text-[12.5px]">
+              <button type="button" onClick={openCreate} className="btn-primary !text-[12.5px]">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
@@ -143,7 +170,7 @@ export default function AlertsView() {
         {/* Tabs */}
         <div className="mb-5 inline-flex items-center rounded-full border border-[var(--border)] p-0.5 text-[12.5px]" style={{ background: "var(--soft-bg)" }}>
           {([
-            { v: "all", label: t.alerts.tabs.all, count: allAlerts.length },
+            { v: "all", label: t.alerts.tabs.all, count: alerts.length },
             { v: "active", label: t.alerts.tabs.active, count: activeCount },
             { v: "triggered", label: t.alerts.tabs.triggered, count: triggeredCount },
           ] as const).map((tabItem) => (
@@ -175,6 +202,9 @@ export default function AlertsView() {
               <div className="mt-1.5 text-[13px] text-[var(--muted)] max-w-sm mx-auto">
                 {t.alerts.emptyDesc}
               </div>
+              <button type="button" onClick={openCreate} className="btn-primary mt-5 justify-center">
+                {t.alerts.newAlert}
+              </button>
             </div>
           </Reveal>
         ) : (
@@ -250,6 +280,7 @@ export default function AlertsView() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
+                        onClick={() => openEdit(alert)}
                         className="grid place-items-center w-8 h-8 rounded-full text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                         aria-label={t.alerts.actions.edit}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--soft-bg)")}
@@ -261,6 +292,7 @@ export default function AlertsView() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleDelete(alert)}
                         className="grid place-items-center w-8 h-8 rounded-full text-[var(--muted)] hover:text-[#e74c3c] transition-colors"
                         aria-label={t.alerts.actions.delete}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, #e74c3c 8%, transparent)")}
@@ -278,6 +310,16 @@ export default function AlertsView() {
           </div>
         )}
       </div>
+
+      <AlertFormModal
+        open={formOpen}
+        initial={editing}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
+        onSubmit={handleFormSubmit}
+      />
     </div>
   );
 }

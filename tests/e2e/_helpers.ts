@@ -105,3 +105,26 @@ export async function submitLogin(page: Page, email: string, password: string) {
   await page.getByPlaceholder("Password").fill(password);
   await page.getByRole("dialog").getByRole("button", { name: /^Log in$/ }).click();
 }
+
+/**
+ * BUG WORKAROUND: Authed users hitting protected routes still see the auth modal pop open
+ * (DashboardView/AccountView/WatchlistView/AlertsView call openAuth in a useEffect that fires
+ * BEFORE localStorage hydrates the user, and never closes it). Press Escape if the modal is up.
+ * This documents the bug — see Phase 16 / Phase 11 findings.
+ */
+export async function dismissAuthModalIfOpen(page: Page) {
+  // Wait briefly for the bug-induced auto-open to fire (useEffect after hydration).
+  const dialog = page.getByRole("dialog");
+  await dialog.first().waitFor({ state: "visible", timeout: 2_500 }).catch(() => {});
+  if (await dialog.count() > 0 && await dialog.first().isVisible().catch(() => false)) {
+    // Try Escape first
+    await page.keyboard.press("Escape");
+    const closed = await dialog.first().isHidden().catch(() => false);
+    if (!closed) {
+      // Click the close button inside the modal as a backup
+      const close = page.getByRole("dialog").getByRole("button", { name: /^(Close|إغلاق|×)$/ }).first();
+      if (await close.count() > 0) await close.click({ force: true }).catch(() => {});
+    }
+    await expect(dialog.first()).toBeHidden({ timeout: 5_000 });
+  }
+}

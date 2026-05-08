@@ -9,7 +9,7 @@ test.describe("Stock detail", () => {
   test("renders header, score badges, time-range tabs", async ({ page }) => {
     await clearAuth(page);
     await page.goto("/stock/ARMD");
-    await expect(page.getByText(/Armada Tech\./)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Armada Tech\./ }).first()).toBeVisible();
     await expect(page.getByText(/^Shariah compliant$/).first()).toBeVisible();
     for (const r of ["1D", "1W", "1M", "3M", "1Y", "5Y"]) {
       await expect(page.getByRole("button", { name: new RegExp(`^${r}$`) })).toBeVisible();
@@ -40,7 +40,7 @@ test.describe("Stock detail", () => {
   test("unknown ticker shows 'Sample Co.' fallback rather than 404", async ({ page }) => {
     const resp = await page.goto("/stock/ZZZZZZ");
     expect(resp?.status()).toBe(200);
-    await expect(page.getByText(/Sample Co\./)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Sample Co\./ }).first()).toBeVisible();
   });
 
   test("similar stocks links navigate", async ({ page }) => {

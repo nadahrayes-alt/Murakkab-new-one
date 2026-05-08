@@ -14,14 +14,14 @@ type Sort = "recent" | "quality" | "gain" | "loss";
 
 export default function WatchlistView() {
   const { t, lang } = useLang();
-  const { isAuthed, open: openAuth } = useAuth();
+  const { isAuthed, open: openAuth, hydrated } = useAuth();
   const { watchlist } = useWatchlist();
   const { openSearch } = useSearch();
   const [sort, setSort] = useState<Sort>("recent");
 
   useEffect(() => {
-    if (!isAuthed) openAuth("login");
-  }, [isAuthed, openAuth]);
+    if (hydrated && !isAuthed) openAuth("login");
+  }, [hydrated, isAuthed, openAuth]);
 
   const stocks = useMemo(
     () => watchlist.map((t) => getStock(t)).filter(Boolean),
@@ -50,7 +50,7 @@ export default function WatchlistView() {
     loss: t.watchlist.sort.loss,
   };
 
-  if (!isAuthed) {
+  if (hydrated && !isAuthed) {
     return (
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-32 sm:py-40 text-center">
         <h1 className="font-display text-3xl sm:text-4xl tracking-tight">{t.account.watchlist}</h1>
@@ -62,6 +62,10 @@ export default function WatchlistView() {
         </button>
       </div>
     );
+  }
+
+  if (!hydrated) {
+    return <div className="min-h-[60vh]" />;
   }
 
   return (

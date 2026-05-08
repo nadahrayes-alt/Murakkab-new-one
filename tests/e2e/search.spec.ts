@@ -70,7 +70,9 @@ test.describe("Search modal", () => {
   test("clicking a stock suggestion navigates to /stock/[symbol] and closes modal", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Meta+k");
-    const card = page.locator("[href='/stock/ARMD']").first();
+    // Wait for search modal first
+    await expect(page.getByPlaceholder("Search stocks by name or symbol...")).toBeVisible();
+    const card = page.getByRole("dialog").locator("[href='/stock/ARMD']").first();
     await expect(card).toBeVisible();
     await card.click();
     await expect(page).toHaveURL(/\/stock\/ARMD$/);

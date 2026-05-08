@@ -10,7 +10,7 @@ type Billing = "monthly" | "annual";
 
 export default function Plans() {
   const { t } = useLang();
-  const { open: openAuth, isAuthed, isPremium, upgrade } = useAuth();
+  const { open: openAuth, isAuthed, isPremium } = useAuth();
   const router = useRouter();
   const [billing, setBilling] = useState<Billing>("annual");
 
@@ -22,9 +22,10 @@ export default function Plans() {
   const handlePremiumCta = () => {
     if (!isAuthed) {
       openAuth("signup", "premium");
+      // After signup, AuthProvider auto-flips to premium via the `intent` flag.
+      // For real flow this should also redirect to /checkout — see CheckoutView.
     } else if (!isPremium) {
-      upgrade();
-      router.push("/dashboard");
+      router.push(`/checkout?billing=${billing}`);
     }
     // If already premium, button is disabled below.
   };

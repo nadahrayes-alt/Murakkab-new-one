@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, type AuthMode } from "@/lib/AuthProvider";
@@ -35,6 +36,7 @@ function Field({
   autoFocus,
   trailing,
   name,
+  error,
 }: {
   icon: FieldIcon;
   type?: string;
@@ -43,26 +45,38 @@ function Field({
   autoFocus?: boolean;
   trailing?: React.ReactNode;
   name?: string;
+  error?: string;
 }) {
   return (
-    <div
-      className="group flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-3.5 h-11 sm:h-12 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_50%,transparent)]"
-      style={{ background: "var(--surface-2)" }}
-    >
-      <span className="text-[var(--muted)] group-focus-within:text-[var(--accent)] transition-colors shrink-0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-          {FIELD_ICONS[icon]}
-        </svg>
-      </span>
-      <input
-        type={type}
-        name={name}
-        placeholder={placeholder}
-        required={required}
-        autoFocus={autoFocus}
-        className="flex-1 bg-transparent outline-none text-sm sm:text-[15px] text-[var(--foreground)] placeholder:text-[var(--muted)]"
-      />
-      {trailing && <span className="shrink-0">{trailing}</span>}
+    <div>
+      <div
+        className="group flex items-center gap-2.5 rounded-xl border px-3.5 h-11 sm:h-12 transition-colors focus-within:border-[color:color-mix(in_oklab,var(--accent)_50%,transparent)]"
+        style={{
+          background: "var(--surface-2)",
+          borderColor: error ? "color-mix(in srgb, #e74c3c 50%, transparent)" : "var(--border)",
+        }}
+      >
+        <span className="text-[var(--muted)] group-focus-within:text-[var(--accent)] transition-colors shrink-0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            {FIELD_ICONS[icon]}
+          </svg>
+        </span>
+        <input
+          type={type}
+          name={name}
+          placeholder={placeholder}
+          required={required}
+          autoFocus={autoFocus}
+          aria-invalid={!!error}
+          className="flex-1 bg-transparent outline-none text-sm sm:text-[15px] text-[var(--foreground)] placeholder:text-[var(--muted)]"
+        />
+        {trailing && <span className="shrink-0">{trailing}</span>}
+      </div>
+      {error && (
+        <p className="mt-1 text-[12px] px-1" style={{ color: "#e74c3c" }} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -88,19 +102,35 @@ function AppleIcon() {
 
 function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode: () => void; close: () => void }) {
   const { t } = useLang();
-  const { login } = useAuth();
+  const { login, intent } = useAuth();
   const router = useRouter();
   const [showPwd, setShowPwd] = useState(false);
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
   const isSignup = mode === "signup";
+
+  const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
-    const email = (data.get("email") as string) || "user@example.com";
-    const fullName = (data.get("fullName") as string) || email.split("@")[0];
-    login({ name: fullName, email, tier: "free" });
+    const email = ((data.get("email") as string) || "").trim();
+    const fullName = ((data.get("fullName") as string) || "").trim();
+    const password = (data.get("password") as string) || "";
+
+    const next: typeof errors = {};
+    if (isSignup && !fullName) next.fullName = t.auth.validation.nameRequired;
+    if (!email) next.email = t.auth.validation.emailRequired;
+    else if (!validateEmail(email)) next.email = t.auth.validation.emailInvalid;
+    if (!password) next.password = t.auth.validation.passwordRequired;
+    else if (password.length < 8) next.password = t.auth.validation.passwordShort;
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+
+    const wantsPremium = intent === "premium";
+    login({ name: fullName || email.split("@")[0], email, tier: "free" });
     close();
-    router.push("/dashboard");
+    router.push(wantsPremium ? "/checkout?billing=annual" : "/dashboard");
   };
 
   const auth = isSignup ? t.auth.signup : t.auth.login;
@@ -160,24 +190,24 @@ function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode:
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="relative mt-6 space-y-2.5">
+      <form onSubmit={handleSubmit} className="relative mt-6 space-y-2.5" noValidate>
         {isSignup && (
-          <Field icon="user" name="fullName" placeholder={t.auth.fields.fullName} required autoFocus />
+          <Field icon="user" name="fullName" placeholder={t.auth.fields.fullName} autoFocus error={errors.fullName} />
         )}
         <Field
           icon="email"
           type="email"
           name="email"
           placeholder={t.auth.fields.email}
-          required
           autoFocus={!isSignup}
+          error={errors.email}
         />
         <Field
           icon="lock"
           type={showPwd ? "text" : "password"}
           name="password"
           placeholder={t.auth.fields.password}
-          required
+          error={errors.password}
           trailing={
             <button
               type="button"
@@ -202,9 +232,13 @@ function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode:
               />
               {t.auth.login.rememberMe}
             </label>
-            <a href="#" className="text-[12.5px] text-[var(--accent)] hover:underline">
+            <Link
+              href="/forgot-password"
+              onClick={close}
+              className="text-[12.5px] text-[var(--accent)] hover:underline"
+            >
               {t.auth.login.forgotPassword}
-            </a>
+            </Link>
           </div>
         )}
 
@@ -217,13 +251,21 @@ function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode:
       {isSignup && (
         <p className="relative mt-3 text-center text-[11.5px] text-[var(--muted)] leading-relaxed">
           {t.auth.signup.legalPre}{" "}
-          <a href="#" className="text-[var(--foreground)] underline-offset-2 hover:underline">
+          <Link
+            href="/terms"
+            onClick={close}
+            className="text-[var(--foreground)] underline-offset-2 hover:underline"
+          >
             {t.auth.signup.terms}
-          </a>{" "}
+          </Link>{" "}
           {t.auth.signup.legalAnd}{" "}
-          <a href="#" className="text-[var(--foreground)] underline-offset-2 hover:underline">
+          <Link
+            href="/privacy"
+            onClick={close}
+            className="text-[var(--foreground)] underline-offset-2 hover:underline"
+          >
             {t.auth.signup.privacy}
-          </a>
+          </Link>
         </p>
       )}
 
@@ -234,14 +276,21 @@ function ModalContent({ mode, switchMode, close }: { mode: AuthMode; switchMode:
         <span className="flex-1 h-px bg-[var(--border)]" />
       </div>
 
-      {/* OAuth */}
+      {/* OAuth — disabled until provider is wired up */}
       <div className="relative space-y-2.5">
         <button
           type="button"
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full px-4 h-11 text-[13.5px] font-medium text-white bg-[#1a73e8] hover:bg-[#1668d4] transition-colors"
+          disabled
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full px-4 h-11 text-[13.5px] font-medium text-white bg-[#1a73e8] opacity-60 cursor-not-allowed"
         >
           <GoogleIcon />
           <span>{auth.google}</span>
+          <span
+            className="ms-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px]"
+            style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
+          >
+            {t.auth.comingSoon}
+          </span>
         </button>
         <button
           type="button"

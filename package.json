@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "PLAYWRIGHT_PORT=3047 playwright test",
+    "test:e2e:headed": "PLAYWRIGHT_PORT=3047 playwright test --headed",
+    "test:e2e:ui": "PLAYWRIGHT_PORT=3047 playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "next": "16.2.5",

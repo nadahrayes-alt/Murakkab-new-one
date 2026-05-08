@@ -27,10 +27,21 @@ export default defineConfig({
     {
       name: "desktop-chromium",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      testIgnore: /mobile\.spec\.ts/,
     },
     {
       name: "mobile-iphone",
-      use: { ...devices["iPhone 13"] },
+      use: {
+        // Use Chromium engine but emulate iPhone 13 viewport + UA, so we can run on the
+        // installed chromium browser (webkit isn't installed locally).
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
+      },
       testMatch: /mobile\.spec\.ts/,
     },
   ],

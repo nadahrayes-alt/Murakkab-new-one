@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/lib/ThemeProvider";
 import { AuthProvider } from "@/lib/AuthProvider";
 import { SearchProvider } from "@/lib/SearchProvider";
 import { WatchlistProvider } from "@/lib/WatchlistProvider";
+import { AlertsProvider } from "@/lib/AlertsProvider";
 import AuthModal from "@/components/AuthModal";
 import SearchModal from "@/components/SearchModal";
 import Navbar from "@/components/Navbar";
@@ -53,13 +54,15 @@ export default function RootLayout({
           <LanguageProvider>
             <AuthProvider>
               <WatchlistProvider>
-                <SearchProvider>
-                  <Navbar />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                  <AuthModal />
-                  <SearchModal />
-                </SearchProvider>
+                <AlertsProvider>
+                  <SearchProvider>
+                    <Navbar />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                    <AuthModal />
+                    <SearchModal />
+                  </SearchProvider>
+                </AlertsProvider>
               </WatchlistProvider>
             </AuthProvider>
           </LanguageProvider>

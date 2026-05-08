@@ -22,17 +22,16 @@ const EARNINGS_DATA: { ticker: string; daysAway: number; estimate: string }[] = 
 
 export default function DashboardView() {
   const { t, lang } = useLang();
-  const { user, isAuthed, isPremium, open: openAuth } = useAuth();
+  const { user, isAuthed, isPremium, open: openAuth, hydrated } = useAuth();
   const { watchlist } = useWatchlist();
   const { openSearch } = useSearch();
   const router = useRouter();
 
-  // If not authed, prompt login
+  // If not authed, prompt login — only after auth has hydrated from localStorage,
+  // so we don't flash the modal for users who ARE logged in.
   useEffect(() => {
-    if (!isAuthed) {
-      openAuth("login");
-    }
-  }, [isAuthed, openAuth]);
+    if (hydrated && !isAuthed) openAuth("login");
+  }, [hydrated, isAuthed, openAuth]);
 
   const watchedStocks = useMemo(
     () => watchlist.map((t) => getStock(t)).filter(Boolean) as ReturnType<typeof getStock>[],
@@ -55,7 +54,7 @@ export default function DashboardView() {
     : 0;
   const sectors = new Set(watchedStocks.map((s) => s!.sector[lang])).size;
 
-  if (!isAuthed) {
+  if (hydrated && !isAuthed) {
     return (
       <div className="mx-auto max-w-2xl px-4 sm:px-6 py-32 sm:py-40 text-center">
         <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
@@ -73,6 +72,12 @@ export default function DashboardView() {
         </button>
       </div>
     );
+  }
+
+  // While hydrating (or for unauthed before the effect runs), render nothing — avoids
+  // both the SSR-vs-client mismatch and the modal flash for authed users.
+  if (!hydrated || !isAuthed) {
+    return <div className="min-h-[60vh]" />;
   }
 
   return (
@@ -162,15 +167,15 @@ export default function DashboardView() {
                   <h3 className="mt-4 font-display text-xl sm:text-2xl leading-tight">
                     {t.dashboard.ai.title}
                   </h3>
-                  <button
-                    type="button"
+                  <Link
+                    href="/article/ai-deeper-analysis"
                     className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-[var(--accent)] hover:underline"
                   >
                     {t.dashboard.ai.viewMore}
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
                       <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
-                  </button>
+                  </Link>
                 </div>
 
                 <ul className="md:col-span-8 space-y-2.5">
@@ -300,7 +305,7 @@ export default function DashboardView() {
                     <h3 className="font-display text-lg">{t.dashboard.earnings.title}</h3>
                     <p className="text-[11.5px] text-[var(--muted)] mt-0.5">{t.dashboard.earnings.subtitle}</p>
                   </div>
-                  <Link href="#" className="text-[11.5px] text-[var(--accent)] hover:underline shrink-0">
+                  <Link href="/earnings" className="text-[11.5px] text-[var(--accent)] hover:underline shrink-0">
                     {t.dashboard.earnings.viewAll}
                   </Link>
                 </div>
