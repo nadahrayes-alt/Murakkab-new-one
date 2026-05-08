@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { StockData } from "@/lib/stockData";
 import { useWatchlist } from "@/lib/WatchlistProvider";
 import { useLang } from "@/lib/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 
 const TONE = {
   good: { bg: "color-mix(in oklab, var(--accent) 12%, transparent)", fg: "var(--accent)" },
@@ -13,6 +14,7 @@ const TONE = {
 
 export default function StockResultCard({ stock }: { stock: StockData }) {
   const { isWatched, toggle } = useWatchlist();
+  const { isAuthed, open: openAuth } = useAuth();
   const { t, lang } = useLang();
   const starred = isWatched(stock.ticker);
 
@@ -31,13 +33,22 @@ export default function StockResultCard({ stock }: { stock: StockData }) {
     >
       <button
         type="button"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(stock.ticker); }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!isAuthed) {
+            openAuth("login");
+            return;
+          }
+          toggle(stock.ticker);
+        }}
+        aria-label={isAuthed ? "Toggle watchlist" : t.common.loginToWatchlist}
+        title={!isAuthed ? t.common.loginToWatchlist : undefined}
         className="absolute top-3 start-3 grid place-items-center w-7 h-7 rounded-full transition-colors"
         style={{
           background: starred ? "color-mix(in oklab, var(--accent) 14%, transparent)" : "transparent",
           color: starred ? "var(--accent)" : "var(--muted)",
         }}
-        aria-label="Toggle watchlist"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill={starred ? "currentColor" : "none"} aria-hidden>
           <path d="M12 3l2.39 5.26 5.61.5-4.27 3.74 1.32 5.5L12 15.27 6.95 18l1.32-5.5L4 8.76l5.61-.5L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />

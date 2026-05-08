@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useLang } from "@/lib/LanguageProvider";
 import { useAuth } from "@/lib/AuthProvider";
@@ -9,8 +10,24 @@ type Billing = "monthly" | "annual";
 
 export default function Plans() {
   const { t } = useLang();
-  const { open: openAuth } = useAuth();
+  const { open: openAuth, isAuthed, isPremium, upgrade } = useAuth();
+  const router = useRouter();
   const [billing, setBilling] = useState<Billing>("annual");
+
+  const handleFreeCta = () => {
+    if (!isAuthed) openAuth("signup");
+    else router.push("/dashboard");
+  };
+
+  const handlePremiumCta = () => {
+    if (!isAuthed) {
+      openAuth("signup", "premium");
+    } else if (!isPremium) {
+      upgrade();
+      router.push("/dashboard");
+    }
+    // If already premium, button is disabled below.
+  };
 
   return (
     <section id="pricing" className="relative py-16 sm:py-24 lg:py-28 overflow-hidden">
@@ -182,19 +199,43 @@ export default function Plans() {
                   ))}
                 </ul>
 
-                {/* CTA — pinned to bottom */}
+                {/* CTA — pinned to bottom, varies per state */}
                 <div className="mt-auto pt-7 sm:pt-8">
-                  <button
-                    type="button"
-                    onClick={() => openAuth("signup")}
-                    className={
-                      tier.featured
-                        ? "btn-primary w-full justify-center !py-2.5"
-                        : "btn-ghost w-full justify-center !py-2.5"
-                    }
-                  >
-                    {tier.ctaLabel}
-                  </button>
+                  {tier.featured ? (
+                    isAuthed && isPremium ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="btn-ghost w-full justify-center !py-2.5 cursor-default opacity-90"
+                        style={{
+                          background: "color-mix(in oklab, var(--accent) 12%, transparent)",
+                          borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
+                          color: "var(--accent)",
+                        }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path d="M5 12l5 5 9-11" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {t.common.currentPlan}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePremiumCta}
+                        className="btn-primary w-full justify-center !py-2.5"
+                      >
+                        {isAuthed && !isPremium ? t.common.upgradeNow : tier.ctaLabel}
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleFreeCta}
+                      className="btn-ghost w-full justify-center !py-2.5"
+                    >
+                      {isAuthed ? t.common.goToDashboard : tier.ctaLabel}
+                    </button>
+                  )}
                 </div>
               </article>
             </Reveal>

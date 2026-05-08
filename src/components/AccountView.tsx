@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthProvider";
@@ -8,6 +7,12 @@ import { useLang } from "@/lib/LanguageProvider";
 import { useTheme, THEMES, type Theme } from "@/lib/ThemeProvider";
 import { useWatchlist } from "@/lib/WatchlistProvider";
 import { Reveal } from "./Parallax";
+
+const MOCK_INVOICES = [
+  { id: "INV-2026-005", date: { en: "May 1, 2026", ar: "1 مايو 2026" }, amount: "$199.00" },
+  { id: "INV-2025-005", date: { en: "May 1, 2025", ar: "1 مايو 2025" }, amount: "$199.00" },
+  { id: "INV-2024-005", date: { en: "May 1, 2024", ar: "1 مايو 2024" }, amount: "$179.00" },
+];
 
 const THEME_SWATCH: Record<Theme, string> = {
   dark: "#0e0e12",
@@ -45,14 +50,18 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
 function Field({
   label,
   type = "text",
+  value,
   defaultValue,
+  onChange,
   placeholder,
   name,
   trailing,
 }: {
   label: string;
   type?: string;
+  value?: string;
   defaultValue?: string;
+  onChange?: (v: string) => void;
   placeholder?: string;
   name?: string;
   trailing?: React.ReactNode;
@@ -67,13 +76,130 @@ function Field({
         <input
           type={type}
           name={name}
+          value={value}
           defaultValue={defaultValue}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           placeholder={placeholder}
           className="flex-1 bg-transparent outline-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
         />
         {trailing}
       </div>
     </label>
+  );
+}
+
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const id = setTimeout(onClose, 2400);
+    return () => clearTimeout(id);
+  }, [onClose]);
+  return (
+    <div
+      className="fixed bottom-6 inset-x-0 z-[200] flex justify-center px-4 pointer-events-none"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="modal-content pointer-events-auto inline-flex items-center gap-2.5 rounded-full border px-4 py-2.5 text-[13px]"
+        style={{
+          background: "var(--surface)",
+          borderColor: "color-mix(in oklab, var(--accent) 40%, transparent)",
+          color: "var(--foreground)",
+        }}
+      >
+        <span
+          className="grid place-items-center w-5 h-5 rounded-full"
+          style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M5 12l5 5 9-11" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span>{message}</span>
+      </div>
+    </div>
+  );
+}
+
+function InvoicesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t, lang } = useLang();
+
+  useEffect(() => {
+    if (!open) return;
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onEsc);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onEsc);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="modal-backdrop fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="modal-content relative w-full max-w-xl rounded-2xl border border-[var(--border)] overflow-hidden"
+        style={{ background: "var(--surface)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 px-5 sm:px-6 py-4 border-b border-[var(--border)]">
+          <div>
+            <h3 className="font-display text-xl">{t.settings.invoices.title}</h3>
+            <p className="text-[12px] text-[var(--muted)] mt-0.5">{t.settings.invoices.subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid place-items-center w-8 h-8 rounded-full text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+            aria-label={t.settings.invoices.close}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="divide-y divide-[var(--border)]">
+          {MOCK_INVOICES.map((inv) => (
+            <div key={inv.id} className="flex items-center gap-3 px-5 sm:px-6 py-3.5">
+              <div className="min-w-0 flex-1">
+                <div className="text-[13.5px] font-mono" dir="ltr">{inv.id}</div>
+                <div className="text-[11.5px] text-[var(--muted)] mt-0.5">{inv.date[lang]}</div>
+              </div>
+              <div className="font-mono text-[13px]" dir="ltr">{inv.amount}</div>
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px]"
+                style={{
+                  background: "color-mix(in oklab, var(--accent) 14%, transparent)",
+                  color: "var(--accent)",
+                }}
+              >
+                {t.settings.invoices.paid}
+              </span>
+              <button
+                type="button"
+                className="grid place-items-center w-8 h-8 rounded-full text-[var(--muted)] hover:text-[var(--foreground)] transition-colors shrink-0"
+                aria-label={t.settings.invoices.download}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--soft-bg)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -104,16 +230,23 @@ function SectionCard({
   );
 }
 
-function SaveButton({ savedLabel, label }: { savedLabel: string; label: string }) {
-  const [saved, setSaved] = useState(false);
+function SaveButton({
+  saved,
+  savedLabel,
+  label,
+  onClick,
+  type = "submit",
+}: {
+  saved: boolean;
+  savedLabel: string;
+  label: string;
+  onClick?: (e: React.MouseEvent) => void;
+  type?: "submit" | "button";
+}) {
   return (
     <button
-      type="submit"
-      onClick={(e) => {
-        e.preventDefault();
-        setSaved(true);
-        setTimeout(() => setSaved(false), 1800);
-      }}
+      type={type}
+      onClick={onClick}
       className={saved ? "btn-ghost" : "btn-primary"}
       style={saved ? { color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 50%, transparent)" } : {}}
     >
@@ -134,16 +267,58 @@ function SaveButton({ savedLabel, label }: { savedLabel: string; label: string }
 export default function AccountView() {
   const { t, lang, setLang } = useLang();
   const { theme, setTheme } = useTheme();
-  const { user, isAuthed, logout, open: openAuth } = useAuth();
+  const { user, isAuthed, logout, open: openAuth, downgrade, updateUser } = useAuth();
   const { clear: clearWatchlist } = useWatchlist();
   const router = useRouter();
 
   const [notifs, setNotifs] = useState({ weekly: true, priceAlerts: true, earnings: true, productUpdates: false });
   const [twoFa, setTwoFa] = useState(false);
+  const [profileName, setProfileName] = useState(user?.name ?? "");
+  const [profileEmail, setProfileEmail] = useState(user?.email ?? "");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [pwdSaved, setPwdSaved] = useState(false);
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthed) openAuth("login");
   }, [isAuthed, openAuth]);
+
+  // Sync controlled state when user object changes (e.g., after upgrade)
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name);
+      setProfileEmail(user.email);
+    }
+  }, [user]);
+
+  const handleProfileSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateUser({ name: profileName, email: profileEmail });
+    setProfileSaved(true);
+    setToast(t.settings.toast.savedProfile);
+    setTimeout(() => setProfileSaved(false), 2000);
+  };
+
+  const handlePasswordSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdSaved(true);
+    setToast(t.settings.toast.savedPassword);
+    setTimeout(() => setPwdSaved(false), 2000);
+  };
+
+  const handleManageSubscription = () => {
+    setToast(t.settings.toast.manageSub);
+    setInvoicesOpen(true);
+  };
+
+  const handleCancelSubscription = () => {
+    if (typeof window === "undefined") return;
+    if (confirm(t.settings.cancelConfirm)) {
+      downgrade();
+      setToast(t.settings.toast.cancelled);
+    }
+  };
 
   if (!isAuthed || !user) {
     return (
@@ -215,7 +390,7 @@ export default function AccountView() {
         <div className="lg:col-span-9 space-y-12">
           {/* Profile */}
           <SectionCard id="profile" title={t.settings.sections.profile.title} desc={t.settings.sections.profile.desc}>
-            <form className="p-5 sm:p-6 space-y-5">
+            <form onSubmit={handleProfileSave} className="p-5 sm:p-6 space-y-5">
               <div className="flex items-center gap-4">
                 <span
                   className="grid place-items-center w-16 h-16 rounded-full font-display text-2xl uppercase"
@@ -224,21 +399,34 @@ export default function AccountView() {
                     color: "var(--accent)",
                   }}
                 >
-                  {user.name.charAt(0)}
+                  {profileName.charAt(0) || "?"}
                 </span>
                 <div>
-                  <div className="text-[15px] font-medium">{user.name || t.settings.emptyName}</div>
-                  <div className="text-[12px] text-[var(--muted)]">{user.email}</div>
+                  <div className="text-[15px] font-medium">{profileName || t.settings.emptyName}</div>
+                  <div className="text-[12px] text-[var(--muted)]">{profileEmail}</div>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label={t.settings.fields.name} defaultValue={user.name} />
-                <Field label={t.settings.fields.email} type="email" defaultValue={user.email} />
+                <Field
+                  label={t.settings.fields.name}
+                  value={profileName}
+                  onChange={setProfileName}
+                />
+                <Field
+                  label={t.settings.fields.email}
+                  type="email"
+                  value={profileEmail}
+                  onChange={setProfileEmail}
+                />
               </div>
 
               <div className="flex justify-end">
-                <SaveButton label={t.settings.actions.save} savedLabel={t.settings.actions.saved} />
+                <SaveButton
+                  saved={profileSaved}
+                  label={t.settings.actions.save}
+                  savedLabel={t.settings.actions.saved}
+                />
               </div>
             </form>
           </SectionCard>
@@ -278,7 +466,11 @@ export default function AccountView() {
                     </div>
                   </div>
                   {user.tier === "premium" ? (
-                    <button type="button" className="btn-ghost !text-[12.5px] !py-1.5">
+                    <button
+                      type="button"
+                      onClick={handleManageSubscription}
+                      className="btn-ghost !text-[12.5px] !py-1.5"
+                    >
                       {t.settings.actions.manage}
                     </button>
                   ) : null}
@@ -301,22 +493,27 @@ export default function AccountView() {
                       </div>
                       <p className="mt-2 text-[14px]">{t.settings.sub.upgradeBody}</p>
                     </div>
-                    <Link href="/#pricing" className="btn-primary !text-[12.5px]">
+                    <a href="/#pricing" className="btn-primary !text-[12.5px]">
                       {t.settings.actions.upgrade}
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
                         <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
-                    </Link>
+                    </a>
                   </div>
                 </div>
               ) : (
                 <div className="mt-5 grid sm:grid-cols-2 gap-3">
-                  <button type="button" className="btn-ghost justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setInvoicesOpen(true)}
+                    className="btn-ghost justify-center"
+                  >
                     {t.settings.actions.invoices}
                   </button>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center rounded-full border border-[var(--border)] px-3.5 h-9 text-[12.5px] text-[#e74c3c] transition-colors"
+                    onClick={handleCancelSubscription}
+                    className="inline-flex items-center justify-center rounded-full border border-[var(--border)] px-3.5 h-9 text-[12.5px] text-[#e74c3c] transition-colors hover:border-[#e74c3c]"
                     style={{ background: "var(--soft-bg)" }}
                   >
                     {t.settings.actions.cancelSubscription}
@@ -445,13 +642,17 @@ export default function AccountView() {
           >
             <div className="divide-y divide-[var(--border)]">
               {/* Change password */}
-              <form className="p-5 sm:p-6 space-y-4">
+              <form onSubmit={handlePasswordSave} className="p-5 sm:p-6 space-y-4">
                 <div className="grid sm:grid-cols-2 gap-3">
                   <Field label={t.settings.fields.currentPassword} type="password" />
                   <Field label={t.settings.fields.newPassword} type="password" />
                 </div>
                 <div className="flex justify-end">
-                  <SaveButton label={t.settings.actions.changePassword} savedLabel={t.settings.actions.saved} />
+                  <SaveButton
+                    saved={pwdSaved}
+                    label={t.settings.actions.changePassword}
+                    savedLabel={t.settings.actions.saved}
+                  />
                 </div>
               </form>
 
@@ -537,6 +738,9 @@ export default function AccountView() {
           </section>
         </div>
       </div>
+
+      <InvoicesModal open={invoicesOpen} onClose={() => setInvoicesOpen(false)} />
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

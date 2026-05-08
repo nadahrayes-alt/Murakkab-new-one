@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLang } from "@/lib/LanguageProvider";
 import { useWatchlist } from "@/lib/WatchlistProvider";
+import { useAuth } from "@/lib/AuthProvider";
 import { Reveal } from "./Parallax";
+import PremiumGate from "./PremiumGate";
 
 const PLACEHOLDER_COMPANIES: Record<string, { name: { en: string; ar: string }; sector: { en: string; ar: string }; price: number; change: number }> = {
   ARMD: { name: { en: "Armada Tech.", ar: "أرمادا تِك" }, sector: { en: "Technology", ar: "تقنية" }, price: 142.18, change: 2.34 },
@@ -142,8 +144,17 @@ function AnalystDonut({ buy, hold, sell }: { buy: number; hold: number; sell: nu
 export default function StockDetail({ symbol }: { symbol: string }) {
   const { t, lang } = useLang();
   const { isWatched, toggle } = useWatchlist();
+  const { isAuthed, open: openAuth } = useAuth();
   const [range, setRange] = useState<TimeRange>("1M");
   const watchlisted = isWatched(symbol);
+
+  const handleWatchlistClick = () => {
+    if (!isAuthed) {
+      openAuth("login");
+      return;
+    }
+    toggle(symbol);
+  };
 
   const company = PLACEHOLDER_COMPANIES[symbol] ?? FALLBACK;
   const isPositive = company.change >= 0;
@@ -233,7 +244,7 @@ export default function StockDetail({ symbol }: { symbol: string }) {
 
               <button
                 type="button"
-                onClick={() => toggle(symbol)}
+                onClick={handleWatchlistClick}
                 className="inline-flex items-center gap-2 rounded-full border px-3.5 h-9 text-[12.5px] transition-colors"
                 style={{
                   background: watchlisted ? "color-mix(in oklab, var(--accent) 12%, transparent)" : "var(--soft-bg)",
@@ -331,9 +342,11 @@ export default function StockDetail({ symbol }: { symbol: string }) {
         </div>
       </div>
 
-      {/* Analyst Ratings + Earnings */}
+      {/* Analyst Ratings + Earnings — premium-gated */}
       <div className="border-b border-[var(--border)]">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14 grid lg:grid-cols-12 gap-5 lg:gap-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
+          <PremiumGate>
+        <div className="grid lg:grid-cols-12 gap-5 lg:gap-6">
           {/* Analyst donut */}
           <Reveal className="lg:col-span-7">
             <div className="rounded-2xl border border-[var(--border)] p-6 sm:p-7" style={{ background: "var(--surface)" }}>
@@ -448,6 +461,8 @@ export default function StockDetail({ symbol }: { symbol: string }) {
               </div>
             </div>
           </Reveal>
+            </div>
+          </PremiumGate>
         </div>
       </div>
 

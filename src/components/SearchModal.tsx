@@ -168,31 +168,33 @@ function SimpleFilterRow({
 function FilterCard({
   item,
   active,
+  gate,
   onToggle,
-  onPremium,
+  onGate,
   premiumLogin,
   premiumUpgrade,
 }: {
   item: FilterItem;
   active: boolean;
+  gate: "login" | "upgrade" | null;
   onToggle: () => void;
-  onPremium: (mode: "login" | "upgrade") => void;
+  onGate: (mode: "login" | "upgrade") => void;
   premiumLogin: string;
   premiumUpgrade: string;
 }) {
-  const isPremium = Boolean(item.premium);
+  const isLocked = gate !== null;
 
   return (
     <button
       type="button"
-      onClick={() => (isPremium ? onPremium(item.premium!) : onToggle())}
+      onClick={() => (isLocked ? onGate(gate!) : onToggle())}
       className="group relative w-full text-start rounded-xl border p-3 transition-colors"
       style={{
         background: active ? "color-mix(in oklab, var(--accent) 7%, var(--surface))" : "transparent",
         borderColor: active
           ? "color-mix(in oklab, var(--accent) 50%, transparent)"
           : "var(--border)",
-        opacity: isPremium ? 0.78 : 1,
+        opacity: isLocked ? 0.78 : 1,
       }}
       onMouseEnter={(e) => {
         if (!active) e.currentTarget.style.borderColor = "color-mix(in oklab, var(--accent) 28%, transparent)";
@@ -222,16 +224,16 @@ function FilterCard({
               {item.desc}
             </div>
           )}
-          {isPremium && (
+          {isLocked && (
             <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--accent)]">
               <span className="rtl:rotate-180">→</span>
-              <span>{item.premium === "login" ? premiumLogin : premiumUpgrade}</span>
+              <span>{gate === "login" ? premiumLogin : premiumUpgrade}</span>
             </div>
           )}
         </div>
       </div>
 
-      {isPremium && (
+      {isLocked && (
         <span
           className="absolute top-2.5 end-2.5 grid place-items-center w-5 h-5 rounded-full"
           style={{ background: "var(--surface-2)", color: "var(--muted)" }}
@@ -239,7 +241,7 @@ function FilterCard({
           <LockIcon />
         </span>
       )}
-      {!isPremium && active && (
+      {!isLocked && active && (
         <span
           className="absolute top-2.5 end-2.5 grid place-items-center w-4 h-4 rounded-md"
           style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
@@ -284,13 +286,15 @@ function StockSuggestion({ stock, lang, onClick }: { stock: Stock; lang: "en" | 
   );
 }
 
-function ResultCard({ stock, lang, labels, onNavigate }: {
+function ResultCard({ stock, lang, labels, onNavigate, onStarUnauthed }: {
   stock: Stock;
   lang: "en" | "ar";
   labels: { valuation: string; quality: string; shariah: string };
   onNavigate?: () => void;
+  onStarUnauthed: () => void;
 }) {
   const { isWatched, toggle } = useWatchlist();
+  const { isAuthed } = useAuth();
   const starred = isWatched(stock.ticker);
   const isPositive = stock.change >= 0;
 
@@ -320,6 +324,10 @@ function ResultCard({ stock, lang, labels, onNavigate }: {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (!isAuthed) {
+            onStarUnauthed();
+            return;
+          }
           toggle(stock.ticker);
         }}
         className="absolute top-3 start-3 grid place-items-center w-7 h-7 rounded-full transition-colors"
@@ -395,7 +403,14 @@ function ResultCard({ stock, lang, labels, onNavigate }: {
 export default function SearchModal() {
   const { open, closeSearch } = useSearch();
   const { t, lang } = useLang();
-  const { open: openAuth } = useAuth();
+  const { open: openAuth, isAuthed, isPremium } = useAuth();
+
+  // Compute gate mode for premium filters based on auth state.
+  const gateForPremium: "login" | "upgrade" | null = !isAuthed
+    ? "login"
+    : !isPremium
+    ? "upgrade"
+    : null;
 
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<Record<string, boolean>>({});
@@ -425,12 +440,12 @@ export default function SearchModal() {
 
   const toggle = (key: string) => setActive((p) => ({ ...p, [key]: !p[key] }));
   const clearAll = () => setActive({});
-  const handlePremium = (mode: "login" | "upgrade") => {
+  const handleGate = (mode: "login" | "upgrade") => {
+    closeSearch();
     if (mode === "login") {
-      closeSearch();
       openAuth("login");
     } else {
-      closeSearch();
+      // Premium upgrade — scroll to pricing
       const el = document.getElementById("pricing");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -558,7 +573,7 @@ export default function SearchModal() {
               </div>
               <div className="grid sm:grid-cols-2 gap-2">
                 {filteredSuggestions.slice(0, 4).map((s) => (
-                  <StockSuggestion key={s.ticker} {...s} lang={lang} />
+                  <StockSuggestion key={s.ticker} stock={s} lang={lang} />
                 ))}
               </div>
             </div>
@@ -570,7 +585,7 @@ export default function SearchModal() {
               {filteredSuggestions.length > 0 ? (
                 <div className="space-y-2">
                   {filteredSuggestions.map((s) => (
-                    <StockSuggestion key={s.ticker} {...s} lang={lang} />
+                    <StockSuggestion key={s.ticker} stock={s} lang={lang} />
                   ))}
                 </div>
               ) : (
@@ -701,7 +716,8 @@ export default function SearchModal() {
                           item={it as FilterItem}
                           active={!!active[`shariah:${it.name}`]}
                           onToggle={() => toggle(`shariah:${it.name}`)}
-                          onPremium={handlePremium}
+                          gate={(it as FilterItem).premium ? gateForPremium : null}
+                          onGate={handleGate}
                           premiumLogin={t.search.premiumLogin}
                           premiumUpgrade={t.search.premiumUpgrade}
                         />
@@ -719,7 +735,8 @@ export default function SearchModal() {
                           item={it as FilterItem}
                           active={!!active[`quality:${it.name}`]}
                           onToggle={() => toggle(`quality:${it.name}`)}
-                          onPremium={handlePremium}
+                          gate={(it as FilterItem).premium ? gateForPremium : null}
+                          onGate={handleGate}
                           premiumLogin={t.search.premiumLogin}
                           premiumUpgrade={t.search.premiumUpgrade}
                         />
@@ -737,7 +754,8 @@ export default function SearchModal() {
                           item={it as FilterItem}
                           active={!!active[`valuation:${it.name}`]}
                           onToggle={() => toggle(`valuation:${it.name}`)}
-                          onPremium={handlePremium}
+                          gate={(it as FilterItem).premium ? gateForPremium : null}
+                          onGate={handleGate}
                           premiumLogin={t.search.premiumLogin}
                           premiumUpgrade={t.search.premiumUpgrade}
                         />
@@ -860,6 +878,10 @@ export default function SearchModal() {
                       lang={lang}
                       labels={t.search.resultLabels}
                       onNavigate={closeSearch}
+                      onStarUnauthed={() => {
+                        closeSearch();
+                        openAuth("login");
+                      }}
                     />
                   ))}
                 </div>

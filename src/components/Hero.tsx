@@ -1,11 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 import StockDashboard from "./mockups/StockDashboard";
 import { Parallax, Reveal, Stagger } from "./Parallax";
 
 export default function Hero() {
   const { t } = useLang();
+  const { isAuthed, open: openAuth } = useAuth();
+  const router = useRouter();
+
+  const handlePrimary = () => {
+    if (isAuthed) router.push("/dashboard");
+    else openAuth("signup");
+  };
 
   return (
     <section id="top" className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
@@ -40,12 +49,12 @@ export default function Hero() {
 
           <Reveal delay={260}>
             <div className="mt-7 sm:mt-9 flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
-              <a href="#signup" className="btn-primary">
-                {t.hero.ctaPrimary}
+              <button type="button" onClick={handlePrimary} className="btn-primary">
+                {isAuthed ? t.common.goToDashboard : t.hero.ctaPrimary}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
                   <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-              </a>
+              </button>
               <a href="#features" className="btn-ghost">
                 {t.hero.ctaSecondary}
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>

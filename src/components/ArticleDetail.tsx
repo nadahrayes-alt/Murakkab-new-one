@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLang } from "@/lib/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 import { Reveal } from "./Parallax";
+import PremiumGate from "./PremiumGate";
 
 function MiniSparkline({ trend = "up" }: { trend?: "up" | "down" }) {
   const path =
@@ -196,8 +198,16 @@ function ShareButton({ icon, label, onClick }: { icon: React.ReactNode; label: s
 
 export default function ArticleDetail({ slug }: { slug: string }) {
   const { t, lang } = useLang();
+  const { isPremium } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
   const article = t.article.placeholder;
+
+  // Free + anonymous users see only the first 3 sections then a paywall.
+  const FREE_PREVIEW_SECTIONS = 3;
+  const visibleSections = isPremium ? article.sections : article.sections.slice(0, FREE_PREVIEW_SECTIONS);
+  const hasPaywall = !isPremium && article.sections.length > FREE_PREVIEW_SECTIONS;
 
   const handleCopy = async () => {
     if (typeof window === "undefined") return;
@@ -206,6 +216,24 @@ export default function ArticleDetail({ slug }: { slug: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {}
+  };
+
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const handleShareTwitter = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(shareUrl)}`;
+    if (typeof window !== "undefined") window.open(url, "_blank", "noopener,noreferrer");
+  };
+  const handleShareLinkedin = () => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    if (typeof window !== "undefined") window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    setSubscribed(true);
+    setNewsletterEmail("");
+    setTimeout(() => setSubscribed(false), 3000);
   };
 
   return (
@@ -302,51 +330,81 @@ export default function ArticleDetail({ slug }: { slug: string }) {
           <div className="lg:col-span-8">
             <Reveal>
               <div className="prose-article">
-                {article.sections.map((section, i) => (
-                  <div key={i}>
-                    {/* Section number badge */}
-                    <div className="flex items-center gap-2 mt-10 first:mt-0 mb-4">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
-                        {t.article.sectionLabel} {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span className="flex-1 h-px bg-[var(--border)]" />
-                    </div>
+                {visibleSections.map((section, i) => {
+                  const isLast = i === visibleSections.length - 1;
+                  const fadeLast = hasPaywall && isLast;
+                  return (
+                    <div key={i} className={fadeLast ? "relative" : ""}>
+                      {/* Section number badge */}
+                      <div className="flex items-center gap-2 mt-10 first:mt-0 mb-4">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted)]">
+                          {t.article.sectionLabel} {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="flex-1 h-px bg-[var(--border)]" />
+                      </div>
 
-                    <h2 className="font-display text-2xl sm:text-3xl leading-tight tracking-tight">
-                      {section.heading}
-                    </h2>
-                    <p className="mt-4 text-[15.5px] sm:text-[16.5px] leading-[1.85] text-[var(--foreground)]/95">
-                      {section.paragraph}
-                    </p>
+                      <h2 className="font-display text-2xl sm:text-3xl leading-tight tracking-tight">
+                        {section.heading}
+                      </h2>
+                      <p className="mt-4 text-[15.5px] sm:text-[16.5px] leading-[1.85] text-[var(--foreground)]/95">
+                        {section.paragraph}
+                      </p>
 
-                    {"chart" in section && section.chart && (
-                      <ChartPlaceholder kind={i === 1 ? "line" : "bars"} />
-                    )}
+                      {"chart" in section && section.chart && (
+                        <ChartPlaceholder kind={i === 1 ? "line" : "bars"} />
+                      )}
 
-                    {"bullets" in section && section.bullets && (
-                      <ul className="mt-5 space-y-2.5">
-                        {section.bullets.map((b) => (
-                          <li key={b} className="flex items-start gap-3 text-[14.5px] sm:text-[15.5px]">
-                            <span
-                              className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
-                              style={{ background: "var(--accent)" }}
-                            />
-                            <span className="leading-relaxed">{b}</span>
-                          </li>
+                      {"bullets" in section && section.bullets && (
+                        <ul className="mt-5 space-y-2.5">
+                          {section.bullets.map((b) => (
+                            <li key={b} className="flex items-start gap-3 text-[14.5px] sm:text-[15.5px]">
+                              <span
+                                className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                                style={{ background: "var(--accent)" }}
+                              />
+                              <span className="leading-relaxed">{b}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      {/* Callout after specific sections */}
+                      {article.callouts
+                        .filter((c) => c.after === i)
+                        .map((c, ci) => (
+                          <CalloutBox key={ci} title={c.title} body={c.body} />
                         ))}
-                      </ul>
-                    )}
 
-                    {/* Callout after specific sections */}
-                    {article.callouts
-                      .filter((c) => c.after === i)
-                      .map((c, ci) => (
-                        <CalloutBox key={ci} title={c.title} body={c.body} />
-                      ))}
-                  </div>
-                ))}
+                      {/* Bottom fade gradient on last section before paywall */}
+                      {fadeLast && (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
+                          style={{
+                            background: "linear-gradient(to bottom, transparent, var(--background))",
+                          }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </Reveal>
+
+            {/* Paywall — only for free / anonymous users */}
+            {hasPaywall && (
+              <Reveal delay={120}>
+                <div className="mt-8">
+                  <PremiumGate
+                    variant="card"
+                    title={t.gate.paywallTitle}
+                    body={t.gate.paywallBody}
+                  />
+                  <p className="mt-3 text-center text-[11.5px] text-[var(--muted)]">
+                    {t.gate.paywallNotice}
+                  </p>
+                </div>
+              </Reveal>
+            )}
 
             {/* Share row at bottom */}
             <div className="mt-12 pt-8 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
@@ -361,6 +419,7 @@ export default function ArticleDetail({ slug }: { slug: string }) {
                     </svg>
                   }
                   label={t.article.shareTwitter}
+                  onClick={handleShareTwitter}
                 />
                 <ShareButton
                   icon={
@@ -369,6 +428,7 @@ export default function ArticleDetail({ slug }: { slug: string }) {
                     </svg>
                   }
                   label={t.article.shareLinkedin}
+                  onClick={handleShareLinkedin}
                 />
                 <ShareButton
                   icon={
@@ -515,7 +575,7 @@ export default function ArticleDetail({ slug }: { slug: string }) {
                 {t.article.newsletter.body}
               </p>
               <form
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={handleSubscribe}
                 className="mt-6 sm:mt-7 flex flex-col sm:flex-row gap-2.5 max-w-md mx-auto"
               >
                 <div
@@ -526,13 +586,29 @@ export default function ArticleDetail({ slug }: { slug: string }) {
                     <path d="M3 6.5L12 13l9-6.5M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
                   </svg>
                   <input
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    required
                     type="email"
                     placeholder={t.article.newsletter.placeholder}
                     className="bg-transparent outline-none flex-1 min-w-0 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
                   />
                 </div>
-                <button type="submit" className="btn-primary justify-center !px-5 whitespace-nowrap">
-                  {t.article.newsletter.submit}
+                <button
+                  type="submit"
+                  className={subscribed ? "btn-ghost justify-center !px-5 whitespace-nowrap" : "btn-primary justify-center !px-5 whitespace-nowrap"}
+                  style={subscribed ? { color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 50%, transparent)" } : {}}
+                >
+                  {subscribed ? (
+                    <>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M5 12l5 5 9-11" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {lang === "ar" ? "تم الاشتراك" : "Subscribed"}
+                    </>
+                  ) : (
+                    t.article.newsletter.submit
+                  )}
                 </button>
               </form>
               <p className="mt-3 text-[11.5px] text-[var(--muted)]">{t.article.newsletter.notice}</p>

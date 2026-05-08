@@ -407,6 +407,12 @@ export default function Navbar() {
                       { href: "/watchlist", label: t.account.watchlist, icon: (
                         <path d="M12 3l2.39 5.26 5.61.5-4.27 3.74 1.32 5.5L12 15.27 6.95 18l1.32-5.5L4 8.76l5.61-.5L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
                       ) },
+                      { href: "/alerts", label: t.account.alerts, icon: (
+                        <>
+                          <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M13.7 21a2 2 0 01-3.4 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                        </>
+                      ) },
                       { href: "/account", label: t.account.settings, icon: (
                         <>
                           <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
