@@ -779,6 +779,8 @@ export const translations = {
     footer: {
       cta: "ابدأ بقرارات استثمارية أكثر وضوحاً",
       ctaButton: "اشترك الآن",
+      ctaPremium: "أهلاً بعودتك إلى مركّب+",
+      ctaButtonPremium: "اذهب للوحة التحكم",
       sections: {
         explore: "استكشف",
         company: "الشركة",
@@ -1577,6 +1579,8 @@ export const translations = {
     footer: {
       cta: "Start making clearer investment decisions",
       ctaButton: "Subscribe now",
+      ctaPremium: "Welcome back to Murakkab+",
+      ctaButtonPremium: "Go to dashboard",
       sections: {
         explore: "Explore",
         company: "Company",

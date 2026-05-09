@@ -1,9 +1,12 @@
 "use client";
 
 import { useLang } from "@/lib/LanguageProvider";
+import { useAuth } from "@/lib/AuthProvider";
 
 export default function Footer() {
   const { t } = useLang();
+  const { isAuthed, isPremium } = useAuth();
+  const showPremiumCta = isAuthed && isPremium;
 
   return (
     <footer className="relative pt-16 sm:pt-24 lg:pt-28 pb-8 sm:pb-10 overflow-hidden">
@@ -12,11 +15,11 @@ export default function Footer() {
         {/* Final CTA */}
         <div className="text-center">
           <h3 className="font-display text-3xl sm:text-5xl md:text-6xl leading-[1.1] tracking-tight max-w-3xl mx-auto">
-            {t.footer.cta}
+            {showPremiumCta ? t.footer.ctaPremium : t.footer.cta}
           </h3>
           <div className="mt-6 sm:mt-7">
-            <a href="#pricing" className="btn-primary">
-              {t.footer.ctaButton}
+            <a href={showPremiumCta ? "/dashboard" : "#pricing"} className="btn-primary">
+              {showPremiumCta ? t.footer.ctaButtonPremium : t.footer.ctaButton}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className="rtl:rotate-180">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
