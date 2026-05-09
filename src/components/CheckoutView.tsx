@@ -68,7 +68,16 @@ export default function CheckoutView() {
         cardNumber: "Card number",
         expiry: "Expiry",
         cvc: "CVC",
-        useTest: "Use test card",
+        useTest: "Fill the form with this card",
+        testBanner: {
+          title: "Test card for QA",
+          subtitle: "Use these values to walk through the flow — no real charge.",
+          number: "Card number",
+          expiryLabel: "Expiry",
+          cvcLabel: "CVC",
+          nameLabel: "Cardholder",
+          anyName: "Any name",
+        },
         pay: "Confirm and pay",
         paying: "Processing…",
         successTitle: "Payment confirmed",
@@ -94,7 +103,16 @@ export default function CheckoutView() {
         cardNumber: "رقم البطاقة",
         expiry: "تاريخ الانتهاء",
         cvc: "CVC",
-        useTest: "استخدم البطاقة التجريبية",
+        useTest: "تعبئة الفورم بهذه البطاقة",
+        testBanner: {
+          title: "بطاقة تجريبية للفريق",
+          subtitle: "استخدم هذه القيم لتجربة عملية الدفع — لن يتم خصم أي مبلغ.",
+          number: "رقم البطاقة",
+          expiryLabel: "تاريخ الانتهاء",
+          cvcLabel: "CVC",
+          nameLabel: "اسم حامل البطاقة",
+          anyName: "أي اسم",
+        },
         pay: "تأكيد الدفع",
         paying: "جارٍ المعالجة…",
         successTitle: "تم تأكيد الدفع",
@@ -220,6 +238,51 @@ export default function CheckoutView() {
 
         {/* Payment form */}
         <form onSubmit={onSubmit} className="lg:col-span-7 space-y-4" noValidate>
+          {/* Test card banner — visible to anyone testing the flow */}
+          <div
+            className="rounded-2xl border p-4 sm:p-5"
+            style={{
+              borderColor: "color-mix(in oklab, var(--accent) 35%, transparent)",
+              background: "color-mix(in oklab, var(--accent) 7%, var(--surface))",
+            }}
+          >
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] pulse-dot" />
+                  {t.testBanner.title}
+                </div>
+                <p className="mt-1.5 text-[12.5px] text-[var(--muted)] leading-relaxed">{t.testBanner.subtitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={useTestCard}
+                className="shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-medium border transition-colors hover:bg-[color-mix(in_oklab,var(--accent)_15%,transparent)]"
+                style={{ borderColor: "color-mix(in oklab, var(--accent) 45%, transparent)", color: "var(--accent)" }}
+              >
+                {t.useTest}
+              </button>
+            </div>
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-[12px]">
+              <div className="rounded-lg px-2.5 py-2 bg-[var(--surface-2)]/60 border border-[var(--border)] col-span-2">
+                <dt className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{t.testBanner.number}</dt>
+                <dd className="mt-0.5 font-mono text-[13px]" dir="ltr">4242 4242 4242 4242</dd>
+              </div>
+              <div className="rounded-lg px-2.5 py-2 bg-[var(--surface-2)]/60 border border-[var(--border)]">
+                <dt className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{t.testBanner.expiryLabel}</dt>
+                <dd className="mt-0.5 font-mono text-[13px]" dir="ltr">12/30</dd>
+              </div>
+              <div className="rounded-lg px-2.5 py-2 bg-[var(--surface-2)]/60 border border-[var(--border)]">
+                <dt className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{t.testBanner.cvcLabel}</dt>
+                <dd className="mt-0.5 font-mono text-[13px]" dir="ltr">123</dd>
+              </div>
+              <div className="rounded-lg px-2.5 py-2 bg-[var(--surface-2)]/60 border border-[var(--border)] col-span-2 sm:col-span-4">
+                <dt className="text-[10px] uppercase tracking-[0.12em] text-[var(--muted)]">{t.testBanner.nameLabel}</dt>
+                <dd className="mt-0.5 text-[13px]">{t.testBanner.anyName}</dd>
+              </div>
+            </dl>
+          </div>
+
           <div>
             <label className="block text-[12px] text-[var(--muted)] mb-1.5">{t.cardholder}</label>
             <input
@@ -305,14 +368,6 @@ export default function CheckoutView() {
               {errors.cvc && <p className="mt-1.5 text-[12px]" style={{ color: "#e74c3c" }} role="alert">{errors.cvc}</p>}
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={useTestCard}
-            className="text-[11.5px] text-[var(--accent)] hover:underline"
-          >
-            {t.useTest}
-          </button>
 
           <button
             type="submit"
