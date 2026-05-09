@@ -31,7 +31,7 @@ export default function Plans() {
   };
 
   return (
-    <section id="pricing" className="relative py-16 sm:py-24 lg:py-28 overflow-hidden">
+    <section id="pricing" className="relative py-10 sm:py-16 lg:py-20 overflow-hidden">
       <div className="absolute inset-x-0 top-0 divider" />
       <Parallax speed={0.2} className="absolute inset-0 -z-10 pointer-events-none">
         <div className="absolute inset-0 [mask-image:radial-gradient(ellipse_at_bottom,black_30%,transparent_70%)] bg-grid opacity-30" />

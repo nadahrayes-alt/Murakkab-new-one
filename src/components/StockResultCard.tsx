@@ -58,8 +58,8 @@ export default function StockResultCard({ stock }: { stock: StockData }) {
       <div className="flex items-start justify-end gap-2.5">
         <div className="text-end">
           <div className="font-mono text-[13px] font-semibold" dir="ltr">{stock.ticker}</div>
-          <div className="text-[11px] text-[var(--muted)] truncate max-w-[140px]" dir={lang === "ar" ? "rtl" : "ltr"}>
-            {stock.name[lang]}
+          <div className="text-[11px] text-[var(--muted)] truncate max-w-[140px]" dir="ltr">
+            {stock.name.en}
           </div>
         </div>
         <span

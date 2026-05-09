@@ -119,7 +119,7 @@ export default function AlertsView() {
   };
   const handleDelete = (a: AlertRecord) => {
     const stock = getStock(a.ticker);
-    const name = stock?.name[lang] ?? a.ticker;
+    const name = stock?.name.en ?? a.ticker;
     const msg = lang === "ar"
       ? `هل تريد حذف التنبيه على ${name}?`
       : `Delete the alert on ${name}?`;
@@ -241,8 +241,8 @@ export default function AlertsView() {
                         {stock.ticker}
                       </span>
                       <div className="min-w-0">
-                        <div className="text-[13px] truncate" dir={lang === "ar" ? "rtl" : "ltr"}>
-                          {stock.name[lang]}
+                        <div className="text-[13px] truncate" dir="ltr">
+                          {stock.name.en}
                         </div>
                       </div>
                     </Link>

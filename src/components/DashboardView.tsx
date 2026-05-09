@@ -330,8 +330,8 @@ export default function DashboardView() {
                             {stock.ticker}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[13px] truncate" dir={lang === "ar" ? "rtl" : "ltr"}>
-                              {stock.name[lang]}
+                            <div className="text-[13px] truncate" dir="ltr">
+                              {stock.name.en}
                             </div>
                             <div className="text-[11px] text-[var(--muted)]" dir="ltr">
                               EPS estimate: {e.estimate}
@@ -387,8 +387,8 @@ export default function DashboardView() {
                               >
                                 {s.ticker}
                               </span>
-                              <span className="flex-1 min-w-0 text-[12px] truncate group-hover:text-[var(--foreground)]">
-                                {s.name[lang]}
+                              <span className="flex-1 min-w-0 text-[12px] truncate group-hover:text-[var(--foreground)]" dir="ltr">
+                                {s.name.en}
                               </span>
                               <span
                                 className="text-[11px] font-mono whitespace-nowrap"

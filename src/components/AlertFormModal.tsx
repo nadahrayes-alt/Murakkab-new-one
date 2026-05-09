@@ -122,7 +122,7 @@ export default function AlertFormModal({ open, initial, onClose, onSubmit }: Pro
             >
               {STOCKS.map((s) => (
                 <option key={s.ticker} value={s.ticker}>
-                  {s.ticker} — {s.name[lang]}
+                  {s.ticker} — {s.name.en}
                 </option>
               ))}
             </select>

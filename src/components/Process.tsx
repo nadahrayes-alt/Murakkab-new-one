@@ -28,7 +28,7 @@ const FILTER_ICONS: Record<string, React.ReactNode> = {
 export default function Process() {
   const { t } = useLang();
   return (
-    <section id="filters" className="relative py-16 sm:py-24 lg:py-28">
+    <section id="filters" className="relative py-10 sm:py-16 lg:py-20">
       <div className="absolute inset-x-0 top-0 divider" />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto">
@@ -54,15 +54,10 @@ export default function Process() {
             {t.filters.items.map((f, i) => (
               <Reveal key={f.title} delay={i * 120} y={20}>
                 <article className="card-hover relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="grid place-items-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        {FILTER_ICONS[f.icon]}
-                      </svg>
-                    </div>
-                    <span className="text-[var(--muted)] font-display text-sm">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
+                  <div className="grid place-items-center w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      {FILTER_ICONS[f.icon]}
+                    </svg>
                   </div>
                   <h3 className="mt-4 sm:mt-5 font-display text-xl sm:text-2xl">{f.title}</h3>
                   <p className="mt-2 sm:mt-3 text-sm text-[var(--muted)] leading-relaxed">{f.desc}</p>

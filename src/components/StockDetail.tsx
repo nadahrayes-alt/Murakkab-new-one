@@ -234,7 +234,7 @@ export default function StockDetail({ symbol }: { symbol: string }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="font-display text-2xl sm:text-3xl tracking-tight truncate">
-                      {company.name[lang]}
+                      {company.name.en}
                     </h1>
                     <span className="text-[12px] text-[var(--muted)] font-mono" dir="ltr">NYSE: {symbol}</span>
                   </div>
@@ -550,7 +550,7 @@ export default function StockDetail({ symbol }: { symbol: string }) {
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="font-display text-lg leading-snug">
                       {lang === "ar"
-                        ? `قراءة في أداء ${company.name.ar} للربع الأخير`
+                        ? `قراءة في أداء ${company.name.en} للربع الأخير`
                         : `Reading ${company.name.en} latest quarter performance`}
                     </h3>
                     <div className="mt-auto pt-4 flex items-center justify-between text-[11px] text-[var(--muted)]">
@@ -596,7 +596,7 @@ export default function StockDetail({ symbol }: { symbol: string }) {
                         {s}
                       </span>
                       <div className="min-w-0">
-                        <div className="text-[12.5px] truncate">{c.name[lang]}</div>
+                        <div className="text-[12.5px] truncate">{c.name.en}</div>
                         <div className="text-[10.5px] text-[var(--muted)] truncate">{c.sector[lang]}</div>
                       </div>
                     </div>

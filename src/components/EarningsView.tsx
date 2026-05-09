@@ -122,8 +122,8 @@ export default function EarningsView() {
                       {stock.ticker}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] truncate" dir={lang === "ar" ? "rtl" : "ltr"}>
-                        {stock.name[lang]}
+                      <div className="text-[14px] truncate" dir="ltr">
+                        {stock.name.en}
                       </div>
                       <div className="text-[11.5px] text-[var(--muted)]" dir="ltr">
                         EPS estimate: {e.estimate}

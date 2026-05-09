@@ -23,7 +23,7 @@ export default function PremiumGate({
   body,
   ctaLabel,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   variant?: "blur" | "card";
   title?: string;
   body?: string;

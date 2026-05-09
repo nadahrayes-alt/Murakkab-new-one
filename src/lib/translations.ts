@@ -23,11 +23,11 @@ export const translations = {
       titleLine1: "استثمر بذكاء",
       titleLine2: "وثقة شرعية",
       subtitle:
-        "منصة مُركّب+ توفر تحليلاً عميقاً بالذكاء الاصطناعي، تصفية شرعية دقيقة، ورؤى سوقية فورية لأكثر من 1,300 سهم.",
+        "منصة مُركّب+ توفر تحليلاً عميقاً بالذكاء الاصطناعي، تصفية شرعية دقيقة، ورؤى سوقية فورية لأكثر من 1,500 سهم.",
       ctaPrimary: "ابدأ مجاناً الآن",
       ctaSecondary: "استكشف الميزات",
       stats: [
-        { value: "+1,300", label: "سهم في السوق الأمريكي" },
+        { value: "+1,500", label: "سهم في السوق الأمريكي" },
         { value: "3 معايير", label: "للتقييم الواضح" },
         { value: "AI", label: "تحليل مدعوم بالذكاء الاصطناعي" },
       ],
@@ -175,7 +175,7 @@ export const translations = {
     discover: {
       eyebrow: "البحث والاكتشاف",
       title: "اكتشف فرصتك الاستثمارية القادمة",
-      body: "ابحث وصفّي بين أكثر من 1,300 سهم في السوق الأمريكي بمعايير ذكية تختصر الوقت.",
+      body: "ابحث وصفّي بين أكثر من 1,500 سهم في السوق الأمريكي بمعايير ذكية تختصر الوقت.",
       cta: "ابدأ البحث مجاناً",
     },
     featuresCta: "اطّلع على الباقة",
@@ -278,7 +278,7 @@ export const translations = {
       paywallNotice: "هذا المقال جزء من حصتك المجانية الشهرية (5 مقالات).",
       banner: {
         title: "أنت في الباقة المجانية",
-        body: "افتح وصولاً كاملاً لـ 1,300+ سهم وكل أدوات التحليل المتقدمة.",
+        body: "افتح وصولاً كاملاً لـ 1,500+ سهم وكل أدوات التحليل المتقدمة.",
         cta: "ترقية الآن",
         dismiss: "إغلاق",
       },
@@ -353,7 +353,7 @@ export const translations = {
       recentNewsTitle: "آخر الأخبار",
       quickActionsTitle: "اختصارات سريعة",
       actions: {
-        search: { title: "بحث في الأسهم", desc: "تصفّح أكثر من 1,300 سهم" },
+        search: { title: "بحث في الأسهم", desc: "تصفّح أكثر من 1,500 سهم" },
         articles: { title: "مقالات تحليلية", desc: "اقرأ آخر التحليلات" },
         upgrade: { title: "ترقية للمميزة", desc: "افتح كل الميزات" },
         alerts: { title: "إدارة التنبيهات", desc: "تنبيهات الأسعار والإعلانات" },
@@ -482,7 +482,7 @@ export const translations = {
         renewsOn: "تتجدد في",
         nextBilling: "الفاتورة القادمة",
         upgradeTitle: "افتح كل الميزات",
-        upgradeBody: "ترقّى للباقة المميزة لوصول كامل إلى 1,300+ سهم وكل أدوات التحليل المتقدمة.",
+        upgradeBody: "ترقّى للباقة المميزة لوصول كامل إلى 1,500+ سهم وكل أدوات التحليل المتقدمة.",
         freeName: "مجاناً للأبد",
         freeDesc: "وصول محدود — 5 مقالات شهرياً.",
         premiumName: "$199.00 / سنوياً",
@@ -822,11 +822,11 @@ export const translations = {
       titleLine1: "Invest smarter,",
       titleLine2: "with Shariah confidence",
       subtitle:
-        "Murakkab+ delivers deep AI-powered analysis, precise Shariah filtering, and instant market insights across more than 1,300 stocks.",
+        "Murakkab+ delivers deep AI-powered analysis, precise Shariah filtering, and instant market insights across more than 1,500 stocks.",
       ctaPrimary: "Start free now",
       ctaSecondary: "Explore features",
       stats: [
-        { value: "1,300+", label: "US-listed stocks" },
+        { value: "1,500+", label: "US-listed stocks" },
         { value: "3 filters", label: "for clear evaluation" },
         { value: "AI", label: "powered analysis" },
       ],
@@ -974,7 +974,7 @@ export const translations = {
     discover: {
       eyebrow: "Search & discover",
       title: "Find your next investment opportunity",
-      body: "Search and filter through 1,300+ US-listed stocks with smart criteria that save you time.",
+      body: "Search and filter through 1,500+ US-listed stocks with smart criteria that save you time.",
       cta: "Start searching free",
     },
     featuresCta: "See pricing",
@@ -1077,7 +1077,7 @@ export const translations = {
       paywallNotice: "This article is part of your monthly free quota (5 articles).",
       banner: {
         title: "You're on the free plan",
-        body: "Unlock full access to 1,300+ stocks and all advanced analysis tools.",
+        body: "Unlock full access to 1,500+ stocks and all advanced analysis tools.",
         cta: "Upgrade now",
         dismiss: "Dismiss",
       },
@@ -1152,7 +1152,7 @@ export const translations = {
       recentNewsTitle: "Latest news",
       quickActionsTitle: "Quick actions",
       actions: {
-        search: { title: "Search stocks", desc: "Browse 1,300+ stocks" },
+        search: { title: "Search stocks", desc: "Browse 1,500+ stocks" },
         articles: { title: "Analysis articles", desc: "Read the latest analysis" },
         upgrade: { title: "Upgrade to Premium", desc: "Unlock all features" },
         alerts: { title: "Manage alerts", desc: "Price + earnings alerts" },
@@ -1280,7 +1280,7 @@ export const translations = {
         renewsOn: "Renews on",
         nextBilling: "Next billing",
         upgradeTitle: "Unlock all features",
-        upgradeBody: "Upgrade to Premium for full access to 1,300+ stocks and every advanced analysis tool.",
+        upgradeBody: "Upgrade to Premium for full access to 1,500+ stocks and every advanced analysis tool.",
         freeName: "Free forever",
         freeDesc: "Limited access — 5 articles per month.",
         premiumName: "$199.00 / year",

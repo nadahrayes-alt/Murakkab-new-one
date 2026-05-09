@@ -7,7 +7,7 @@ export default function Testimonials() {
   const { t } = useLang();
 
   return (
-    <section id="testimonials" className="relative py-16 sm:py-24 lg:py-28">
+    <section id="testimonials" className="relative py-10 sm:py-16 lg:py-20">
       <div className="absolute inset-x-0 top-0 divider" />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto">

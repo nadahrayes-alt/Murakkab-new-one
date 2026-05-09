@@ -17,7 +17,7 @@ export default function Hero() {
   };
 
   return (
-    <section id="top" className="relative pt-28 sm:pt-36 pb-16 sm:pb-24 overflow-hidden">
+    <section id="top" className="relative pt-28 sm:pt-36 pb-8 sm:pb-12 overflow-hidden">
       <Parallax speed={0.18} className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-grid opacity-60 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" />
       </Parallax>
@@ -92,7 +92,7 @@ export default function Hero() {
 
         {/* Trust strip */}
         <Reveal delay={200}>
-          <div className="mt-10 sm:mt-12 text-center">
+          <div className="mt-6 sm:mt-8 text-center">
             <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-[var(--muted)]">
               {t.hero.partnersLabel}
             </p>

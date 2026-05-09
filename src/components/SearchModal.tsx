@@ -273,7 +273,7 @@ function StockSuggestion({ stock, lang, onClick }: { stock: Stock; lang: "en" | 
         {stock.ticker}
       </span>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] truncate">{stock.name[lang]}</div>
+        <div className="text-[13px] truncate" dir="ltr">{stock.name.en}</div>
         <div className="text-[11px] text-[var(--muted)] truncate">{stock.sector[lang]}</div>
       </div>
       <div
@@ -346,8 +346,8 @@ function ResultCard({ stock, lang, labels, onNavigate, onStarUnauthed }: {
       <div className="flex items-start justify-end gap-2.5">
         <div className="text-end">
           <div className="font-mono text-[13px] font-semibold" dir="ltr">{stock.ticker}</div>
-          <div className="text-[11px] text-[var(--muted)] truncate max-w-[140px]" dir={lang === "ar" ? "rtl" : "ltr"}>
-            {stock.name[lang]}
+          <div className="text-[11px] text-[var(--muted)] truncate max-w-[140px]" dir="ltr">
+            {stock.name.en}
           </div>
         </div>
         <span
